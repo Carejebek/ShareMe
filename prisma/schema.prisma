@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RENTER
+  HOST
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(RENTER)
+  avatarUrl     String?
+  phone         String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  listings      Listing[] @relation("HostListings")
+  bookings      Booking[] @relation("RenterBookings")
+  reviewsWritten  Review[] @relation("ReviewAuthor")
+  reviewsReceived Review[] @relation("ReviewTarget")
+}
+
+model Listing {
+  id            String    @id @default(cuid())
+  hostId        String
+  host          User      @relation("HostListings", fields: [hostId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String
+  make          String
+  model         String
+  year          Int
+  pricePerDay   Decimal   @db.Decimal(10, 2)
+  city          String
+  state         String
+  country       String    @default("US")
+  latitude      Float?
+  longitude     Float?
+  seats         Int       @default(4)
+  transmission  String    @default("AUTOMATIC")
+  fuelType      String    @default("GASOLINE")
+  imageUrls     String[]
+  isActive      Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bookings      Booking[]
+  reviews       Review[]
+
+  @@index([city, state])
+  @@index([hostId])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  listingId     String
+  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  renterId      String
+  renter        User          @relation("RenterBookings", fields: [renterId], references: [id], onDelete: Cascade)
+
+  startDate     DateTime
+  endDate       DateTime
+  totalPrice    Decimal       @db.Decimal(10, 2)
+  status        BookingStatus @default(PENDING)
+
+  payment       Payment?
+  review        Review?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([listingId])
+  @@index([renterId])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  bookingId             String        @unique
+  booking               Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  stripePaymentIntentId String        @unique
+  amount                Decimal       @db.Decimal(10, 2)
+  status                PaymentStatus @default(PENDING)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  authorId    String
+  author      User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetId    String
+  target      User     @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  @@index([listingId])
+}
