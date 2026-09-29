@@ -3,14 +3,15 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 });
   }
 
   const booking = await prisma.booking.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { listing: true, payment: true, renter: { select: { id: true, name: true, email: true } } }
   });
 
@@ -27,14 +28,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 // PATCH - cancel a booking (renter) or confirm/complete (host)
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 });
   }
 
   const booking = await prisma.booking.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { listing: true }
   });
   if (!booking) {
@@ -51,7 +53,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Not authorized.' }, { status: 403 });
   }
 
-  // Renters may only cancel; hosts may confirm/cancel/complete
   const allowedForRenter = ['CANCELLED'];
   const allowedForHost = ['CONFIRMED', 'CANCELLED', 'COMPLETED'];
 
@@ -63,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const updated = await prisma.booking.update({
-    where: { id: params.id },
+    where: { id },
     data: { status }
   });
 

@@ -27,6 +27,12 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum ListingApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -66,6 +72,7 @@ model Listing {
   fuelType      String    @default("GASOLINE")
   imageUrls     String[]
   isActive      Boolean   @default(true)
+  approvalStatus  ListingApprovalStatus @default(PENDING)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
