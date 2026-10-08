@@ -28,6 +28,12 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }]
       },
       {
+        name: 'Book a ride',
+        short_name: 'Ride',
+        url: '/ride',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }]
+      },
+      {
         name: 'My bookings',
         short_name: 'Bookings',
         url: '/dashboard/bookings',

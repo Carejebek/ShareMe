@@ -11,6 +11,16 @@ enum Role {
   RENTER
   HOST
   ADMIN
+  DRIVER
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  EN_ROUTE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum BookingStatus {
@@ -49,6 +59,9 @@ model User {
   bookings      Booking[] @relation("RenterBookings")
   reviewsWritten  Review[] @relation("ReviewAuthor")
   reviewsReceived Review[] @relation("ReviewTarget")
+
+  ridesRequested  Ride[]   @relation("RiderRides")
+  ridesDriven     Ride[]   @relation("DriverRides")
 }
 
 model Listing {
@@ -134,4 +147,41 @@ model Review {
   createdAt   DateTime @default(now())
 
   @@index([listingId])
+}
+
+model Ride {
+  id              String     @id @default(cuid())
+
+  riderId         String
+  rider           User       @relation("RiderRides", fields: [riderId], references: [id], onDelete: Cascade)
+  driverId        String?
+  driver          User?      @relation("DriverRides", fields: [driverId], references: [id], onDelete: SetNull)
+
+  pickupAddress   String
+  pickupPlaceId   String
+  dropoffAddress  String
+  dropoffPlaceId  String
+
+  // null means "as soon as possible"
+  scheduledAt     DateTime?
+  riderPhone      String
+  notes           String?
+
+  // Price is calculated on the server and locked when the ride is booked.
+  distanceMeters  Int
+  durationMinutes Int
+  ratePerMinute   Decimal    @db.Decimal(8, 2)
+  minimumFare     Decimal    @db.Decimal(8, 2)
+  totalPrice      Decimal    @db.Decimal(10, 2)
+  currency        String     @default("USD")
+
+  status          RideStatus @default(REQUESTED)
+  paid            Boolean    @default(false)
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([riderId])
+  @@index([driverId])
+  @@index([status, scheduledAt])
 }

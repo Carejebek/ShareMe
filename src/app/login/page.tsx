@@ -30,7 +30,9 @@ export default function LoginPage() {
         return;
       }
 
-      const callbackUrl = "/";
+      const requested = new URLSearchParams(window.location.search).get("callbackUrl");
+      const callbackUrl =
+        requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
       router.replace(callbackUrl);
       router.refresh();
     } catch {

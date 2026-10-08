@@ -7,6 +7,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const navigation = [
+    { label: "Book a Ride", href: "/ride" },
     { label: "Browse Cars", href: "/" },
     { label: "Become a Host", href: "/register" },
     { label: "How It Works", href: "#how-it-works" },
