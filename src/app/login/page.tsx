@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -31,8 +31,11 @@ export default function LoginPage() {
       }
 
       const requested = new URLSearchParams(window.location.search).get("callbackUrl");
+      const session = await getSession();
+      const role = (session?.user as { role?: string } | undefined)?.role;
+      const fallback = role === "ADMIN" ? "/dashboard/admin" : "/";
       const callbackUrl =
-        requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+        requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : fallback;
       router.replace(callbackUrl);
       router.refresh();
     } catch {
