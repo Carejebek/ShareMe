@@ -1,295 +1,229 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { Badge, Card, EmptyState, PageHeader, StatCard, TextLink } from "@/components/admin/ui";
+import { money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
-export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
+const DAY = 24 * 60 * 60 * 1000;
 
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
+async function revenueSince(since?: Date) {
+  const result = await prisma.payment.aggregate({
+    where: { status: "SUCCEEDED", ...(since ? { createdAt: { gte: since } } : {}) },
+    _sum: { amount: true },
   });
+  return Number(result._sum.amount ?? 0);
+}
 
-  if (!user || user.role !== "ADMIN") {
-    redirect("/");
-  }
+export default async function AdminOverviewPage() {
+  await requireAdmin();
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const [
-    users,
-    listings,
-    bookings,
-    payments,
-    latestListings,
+    revenueToday,
+    revenue7,
+    revenue30,
+    revenueAll,
+    rideRevenue,
+    usersByRole,
+    newUsers7,
+    listingsLive,
+    listingsTotal,
+    bookingsByStatus,
+    activeTrips,
+    pendingVehicles,
+    pendingBookings,
+    failedPayments,
+    openRides,
     latestBookings,
+    latestUsers,
   ] = await Promise.all([
-    prisma.user.count(),
+    revenueSince(startOfToday),
+    revenueSince(new Date(now.getTime() - 7 * DAY)),
+    revenueSince(new Date(now.getTime() - 30 * DAY)),
+    revenueSince(),
+    prisma.ride.aggregate({ where: { status: "COMPLETED", paid: true }, _sum: { totalPrice: true } }),
+    prisma.user.groupBy({ by: ["role"], _count: { _all: true } }),
+    prisma.user.count({ where: { createdAt: { gte: new Date(now.getTime() - 7 * DAY) } } }),
+    prisma.listing.count({ where: { isActive: true, approvalStatus: "APPROVED" } }),
     prisma.listing.count(),
-    prisma.booking.count(),
-    prisma.payment.findMany({
-      where: {
-        status: "SUCCEEDED",
-      },
-      select: {
-        amount: true,
-      },
-    }),
+    prisma.booking.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.booking.count({ where: { status: "CONFIRMED", startDate: { lte: now }, endDate: { gte: now } } }),
     prisma.listing.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { approvalStatus: "PENDING" },
+      include: { host: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
       take: 5,
-      include: {
-        host: true,
-      },
     }),
+    prisma.booking.count({ where: { status: "PENDING" } }),
+    prisma.payment.count({ where: { status: "FAILED" } }),
+    prisma.ride.count({ where: { status: "REQUESTED", driverId: null } }),
     prisma.booking.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 5,
       include: {
-        listing: true,
-        renter: true,
+        listing: { select: { make: true, model: true, year: true } },
+        renter: { select: { name: true } },
       },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
     }),
   ]);
 
-  const grossRevenue = payments.reduce(
-    (total, payment) => total + Number(payment.amount),
-    0
-  );
+  const roleCount = (role: string) => usersByRole.find((r) => r.role === role)?._count._all ?? 0;
+  const totalUsers = usersByRole.reduce((sum, r) => sum + r._count._all, 0);
+  const bookingCount = (status: string) => bookingsByStatus.find((b) => b.status === status)?._count._all ?? 0;
+  const totalBookings = bookingsByStatus.reduce((sum, b) => sum + b._count._all, 0);
 
-  const activeListings = await prisma.listing.count({
-    where: {
-      isActive: true,
-    },
-  });
-
-  const hostCount = await prisma.user.count({
-    where: {
-      role: "HOST",
-    },
-  });
+  const attention = [
+    { label: "Vehicles awaiting approval", count: pendingVehicles.length, href: "/dashboard/admin/vehicles?approval=PENDING" },
+    { label: "Unpaid / pending bookings", count: pendingBookings, href: "/dashboard/admin/bookings?status=PENDING" },
+    { label: "Failed payments", count: failedPayments, href: "/dashboard/admin/payments?status=FAILED" },
+    { label: "Rides without a driver", count: openRides, href: "/dashboard/admin/rides?status=REQUESTED" },
+  ].filter((item) => item.count > 0);
 
   return (
-    <main className="min-h-screen bg-[#f7f7f7] pt-24">
-      <section className="mx-auto max-w-7xl px-6 py-10">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.35em] text-[#ff5a1f]">
-              JayXZ Administration
-            </p>
-
-            <h1 className="mt-3 text-4xl font-black text-neutral-950 md:text-5xl">
-              Platform Overview
-            </h1>
-
-            <p className="mt-3 text-neutral-600">
-              Monitor marketplace activity, users, vehicles and bookings.
-            </p>
-          </div>
-
+    <div className="space-y-8">
+      <PageHeader
+        title="Platform Overview"
+        description="Revenue, marketplace health and everything that needs an admin."
+        actions={
           <Link
             href="/cars"
-            className="rounded-xl bg-neutral-950 px-6 py-4 font-black text-white transition hover:bg-[#ff5a1f]"
+            className="rounded-xl bg-neutral-950 px-5 py-3 text-sm font-black text-white transition hover:bg-[#ff5a1f]"
           >
             View Marketplace
           </Link>
-        </div>
+        }
+      />
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-3xl bg-neutral-950 p-6 text-white">
-            <p className="text-sm text-neutral-400">Total Users</p>
-            <p className="mt-3 text-4xl font-black">{users}</p>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard tone="brand" label="Rental revenue · today" value={money(revenueToday)} />
+        <StatCard label="Last 7 days" value={money(revenue7)} />
+        <StatCard label="Last 30 days" value={money(revenue30)} />
+        <StatCard
+          tone="dark"
+          label="All-time rental revenue"
+          value={money(revenueAll)}
+          hint={`+ ${money(rideRevenue._sum.totalPrice)} from paid rides`}
+        />
+      </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Hosts</p>
-            <p className="mt-3 text-4xl font-black text-neutral-950">
-              {hostCount}
-            </p>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Users"
+          value={totalUsers}
+          hint={`${roleCount("HOST")} hosts · ${roleCount("RENTER")} renters · ${roleCount("DRIVER")} drivers · +${newUsers7} this week`}
+          href="/dashboard/admin/users"
+        />
+        <StatCard
+          label="Live vehicles"
+          value={listingsLive}
+          hint={`${listingsTotal} listed in total`}
+          href="/dashboard/admin/vehicles"
+        />
+        <StatCard
+          label="Bookings"
+          value={totalBookings}
+          hint={`${bookingCount("CONFIRMED")} confirmed · ${bookingCount("COMPLETED")} completed · ${bookingCount("CANCELLED")} cancelled`}
+          href="/dashboard/admin/bookings"
+        />
+        <StatCard
+          label="Trips in progress"
+          value={activeTrips}
+          hint="Confirmed bookings happening right now"
+          href="/dashboard/admin/bookings?status=CONFIRMED"
+        />
+      </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Active Vehicles</p>
-            <p className="mt-3 text-4xl font-black text-neutral-950">
-              {activeListings}
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Bookings</p>
-            <p className="mt-3 text-4xl font-black text-neutral-950">
-              {bookings}
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-gradient-to-r from-[#e62e1f] to-[#ff5a1f] p-6 text-white">
-            <p className="text-sm text-orange-100">Processed Payments</p>
-            <p className="mt-3 text-4xl font-black">
-              ${grossRevenue.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-12 grid gap-8 xl:grid-cols-2">
-          <section className="rounded-3xl bg-white p-7 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.25em] text-[#ff5a1f]">
-                  Marketplace
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                  Latest Vehicles
-                </h2>
-              </div>
-
-              <span className="text-sm font-bold text-neutral-500">
-                {listings} total
-              </span>
-            </div>
-
-            {latestListings.length === 0 ? (
-              <p className="mt-8 text-neutral-500">
-                No vehicles have been listed yet.
-              </p>
-            ) : (
-              <div className="mt-7 space-y-4">
-                {latestListings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="flex items-center justify-between gap-4 rounded-2xl bg-neutral-50 p-4"
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+        <Card title="Needs attention">
+          {attention.length === 0 ? (
+            <EmptyState>All clear — nothing waiting on an admin.</EmptyState>
+          ) : (
+            <ul className="space-y-3">
+              {attention.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center justify-between rounded-2xl bg-orange-50 px-5 py-4 font-bold text-orange-900 transition hover:bg-orange-100"
                   >
-                    <div>
-                      <p className="font-black text-neutral-950">
-                        {listing.make} {listing.model}
-                      </p>
+                    {item.label}
+                    <span className="rounded-full bg-[#ff5a1f] px-3 py-1 text-sm font-black text-white">{item.count}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
 
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {listing.year} · {listing.city}, {listing.state}
-                      </p>
-
-                      <p className="mt-1 text-xs text-neutral-400">
-                        Host: {listing.host.name}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-black text-neutral-950">
-                        ${Number(listing.pricePerDay).toFixed(0)}/day
-                      </p>
-
-                      <span
-                        className={
-                          listing.isActive
-                            ? "mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700"
-                            : "mt-2 inline-block rounded-full bg-neutral-200 px-3 py-1 text-xs font-black text-neutral-600"
-                        }
-                      >
-                        {listing.isActive ? "ACTIVE" : "INACTIVE"}
-                      </span>
-                    </div>
-                  </div>
+          {pendingVehicles.length > 0 && (
+            <div className="mt-6">
+              <p className="mb-3 text-xs font-black uppercase tracking-wider text-neutral-400">Oldest pending vehicles</p>
+              <ul className="space-y-2 text-sm">
+                {pendingVehicles.map((listing) => (
+                  <li key={listing.id} className="flex justify-between gap-3">
+                    <TextLink href={`/dashboard/admin/vehicles/${listing.id}`}>
+                      {listing.year} {listing.make} {listing.model}
+                    </TextLink>
+                    <span className="text-neutral-500">
+                      {listing.host.name} · {shortDate(listing.createdAt)}
+                    </span>
+                  </li>
                 ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-3xl bg-white p-7 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.25em] text-[#ff5a1f]">
-                  Transactions
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                  Latest Bookings
-                </h2>
-              </div>
+              </ul>
             </div>
+          )}
+        </Card>
 
-            {latestBookings.length === 0 ? (
-              <p className="mt-8 text-neutral-500">
-                No bookings have been created yet.
-              </p>
-            ) : (
-              <div className="mt-7 space-y-4">
-                {latestBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="rounded-2xl bg-neutral-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-black text-neutral-950">
-                          {booking.listing.make} {booking.listing.model}
-                        </p>
-
-                        <p className="mt-1 text-sm text-neutral-500">
-                          Renter: {booking.renter.name}
-                        </p>
-                      </div>
-
-                      <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-[#e62e1f]">
-                        {booking.status}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4">
-                      <span className="text-sm text-neutral-500">
-                        {new Date(booking.startDate).toLocaleDateString()} →{" "}
-                        {new Date(booking.endDate).toLocaleDateString()}
-                      </span>
-
-                      <span className="font-black text-neutral-950">
-                        ${Number(booking.totalPrice).toFixed(2)}
-                      </span>
-                    </div>
+        <Card title="Latest bookings" action={<TextLink href="/dashboard/admin/bookings">View all →</TextLink>}>
+          {latestBookings.length === 0 ? (
+            <EmptyState>No bookings yet.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-neutral-100">
+              {latestBookings.map((booking) => (
+                <li key={booking.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    <TextLink href={`/dashboard/admin/bookings/${booking.id}`}>
+                      {booking.listing.year} {booking.listing.make} {booking.listing.model}
+                    </TextLink>
+                    <p className="truncate text-neutral-500">
+                      {booking.renter.name} · {shortDate(booking.startDate)} → {shortDate(booking.endDate)}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="font-black">{money(booking.totalPrice)}</span>
+                    <Badge value={booking.status} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
 
-        <section className="mt-8 rounded-3xl bg-neutral-950 p-8 text-white">
-          <p className="text-sm font-black uppercase tracking-[0.3em] text-[#ff5a1f]">
-            JayXZ Vision
-          </p>
-
-          <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
-            <div>
-              <h2 className="text-3xl font-black md:text-4xl">
-                A connected digital mobility marketplace.
-              </h2>
-
-              <p className="mt-5 max-w-3xl leading-8 text-neutral-300">
-                JayXZ is designed to connect vehicle owners, renters,
-                fleet operators, businesses and travelers through one
-                secure digital platform.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <p className="font-black text-white">
-                Drive Your Freedom.
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-neutral-400">
-                Built by OAJ Software.
-              </p>
-            </div>
-          </div>
-        </section>
-      </section>
-    </main>
+      <Card title="Newest users" action={<TextLink href="/dashboard/admin/users">View all →</TextLink>}>
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {latestUsers.map((user) => (
+            <li key={user.id}>
+              <Link
+                href={`/dashboard/admin/users/${user.id}`}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3 transition hover:bg-neutral-100"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-bold">{user.name}</p>
+                  <p className="truncate text-xs text-neutral-500">
+                    {user.email} · {shortDate(user.createdAt)}
+                  </p>
+                </div>
+                <Badge value={user.role} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
   );
 }
