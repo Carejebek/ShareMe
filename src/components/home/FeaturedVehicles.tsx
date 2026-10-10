@@ -5,6 +5,7 @@ export default async function FeaturedVehicles() {
   const listings = await prisma.listing.findMany({
     where: {
       isActive: true,
+      approvalStatus: "APPROVED",
     },
     orderBy: {
       createdAt: "desc",

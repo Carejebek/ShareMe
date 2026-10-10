@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import { canSeeListing } from '@/lib/listingVisibility';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,7 +17,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
   });
 
-  if (!listing) {
+  // Cars that aren't live are only visible to their host and admins.
+  if (!listing || !(await canSeeListing(listing))) {
     return NextResponse.json({ error: 'Listing not found.' }, { status: 404 });
   }
 

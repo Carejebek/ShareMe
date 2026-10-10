@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     where.hostId = (session.user as any).id;
   } else {
     where.isActive = true;
+    where.approvalStatus = 'APPROVED';
   }
 
   if (city) {

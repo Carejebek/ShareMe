@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { canSeeListing, isListingLive } from "@/lib/listingVisibility";
 
 export default async function ListingDetailsPage({
   params,
@@ -24,9 +25,12 @@ export default async function ListingDetailsPage({
     },
   });
 
-  if (!listing || !listing.isActive) {
+  // Cars that aren't live are only visible to their host and admins (as a preview).
+  if (!listing || !(await canSeeListing(listing))) {
     notFound();
   }
+
+  const isPreview = !isListingLive(listing);
 
   const averageRating =
     listing.reviews.length > 0
@@ -44,6 +48,16 @@ export default async function ListingDetailsPage({
   return (
     <main className="min-h-screen bg-[#f7f7f7] pt-24">
       <section className="mx-auto max-w-7xl px-6 py-8">
+        {isPreview && (
+          <p className="mb-6 rounded-2xl bg-orange-50 px-5 py-4 text-sm font-bold text-orange-900">
+            Preview only — this car isn&apos;t on the marketplace
+            {listing.approvalStatus !== "APPROVED"
+              ? ` (approval: ${listing.approvalStatus.toLowerCase()})`
+              : " (taken offline)"}
+            . Renters can&apos;t see or book it.
+          </p>
+        )}
+
         <Link
           href="/cars"
           className="text-sm font-bold text-neutral-600 hover:text-[#ff5a1f]"

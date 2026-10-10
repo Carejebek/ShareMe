@@ -108,7 +108,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           <DetailRow label="Fuel">{listing.fuelType}</DetailRow>
           <DetailRow label="Listed">{shortDate(listing.createdAt)}</DetailRow>
           <DetailRow label="Public page">
-            {isLive ? <TextLink href={`/listings/${listing.id}`}>Open →</TextLink> : "Not public"}
+            <TextLink href={`/listings/${listing.id}`}>{isLive ? "Open →" : "Preview (not public) →"}</TextLink>
           </DetailRow>
           <p className="mt-4 whitespace-pre-line text-sm leading-6 text-neutral-600">{listing.description}</p>
         </Card>

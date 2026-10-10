@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const listing = await prisma.listing.findUnique({ where: { id: listingId } });
-  if (!listing || !listing.isActive) {
+  if (!listing || !listing.isActive || listing.approvalStatus !== 'APPROVED') {
     return NextResponse.json({ error: 'Listing not available.' }, { status: 404 });
   }
 
