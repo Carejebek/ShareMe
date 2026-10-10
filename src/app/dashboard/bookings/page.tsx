@@ -110,6 +110,14 @@ export default function MyBookingsPage() {
                   </button>
                 </>
               )}
+              {(b.status === 'CONFIRMED' || b.status === 'COMPLETED') && (
+                <Link
+                  href={`/dashboard/claims?booking=${b.id}`}
+                  className="text-sm bg-gray-100 rounded-md px-3 py-1.5"
+                >
+                  Report an issue
+                </Link>
+              )}
               {b.status === 'COMPLETED' && !b.review && (
                 <button
                   onClick={() => setReviewFor(b.id)}

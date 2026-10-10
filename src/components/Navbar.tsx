@@ -51,9 +51,13 @@ export default function Navbar() {
         <div className="hidden items-center gap-5 lg:flex">
           {status === "loading" ? null : user ? (
             <>
-              <span className="text-sm text-neutral-300">
+              <Link
+                href="/account"
+                title="Your account"
+                className="text-sm text-neutral-300 transition hover:text-[#ff5a1f]"
+              >
                 {user.name || user.email}
-              </span>
+              </Link>
 
               {dashboard && (
                 <Link
@@ -126,6 +130,14 @@ export default function Navbar() {
                     {dashboard.label}
                   </Link>
                 )}
+
+                <Link
+                  href="/account"
+                  onClick={() => setOpen(false)}
+                  className="font-semibold text-white"
+                >
+                  Account
+                </Link>
 
                 <button
                   type="button"
