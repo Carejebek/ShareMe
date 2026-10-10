@@ -43,80 +43,130 @@ enum ListingApprovalStatus {
   REJECTED
 }
 
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ClaimStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DENIED
+}
+
+enum ClaimType {
+  DAMAGE
+  CLEANING
+  LATE_RETURN
+  FUEL
+  TOLLS_TICKETS
+  OTHER
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  passwordHash  String
-  role          Role      @default(RENTER)
-  avatarUrl     String?
-  phone         String?
-  bio           String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RENTER)
+  avatarUrl    String?
+  phone        String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  listings      Listing[] @relation("HostListings")
-  bookings      Booking[] @relation("RenterBookings")
-  reviewsWritten  Review[] @relation("ReviewAuthor")
-  reviewsReceived Review[] @relation("ReviewTarget")
+  // Set when an admin suspends the account; suspended users can't log in.
+  suspendedAt      DateTime?
+  suspensionReason String?
+  adminNotes       String?
 
-  ridesRequested  Ride[]   @relation("RiderRides")
-  ridesDriven     Ride[]   @relation("DriverRides")
+  // Driver's licence check, reviewed by an admin. Hosts must be VERIFIED before their cars can be approved.
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  licenseImagePath   String? // private file, served only to admins
+  verificationNote   String? // reason shown to the user when rejected
+  verifiedAt         DateTime?
+
+  listings        Listing[] @relation("HostListings")
+  bookings        Booking[] @relation("RenterBookings")
+  reviewsWritten  Review[]  @relation("ReviewAuthor")
+  reviewsReceived Review[]  @relation("ReviewTarget")
+
+  ridesRequested Ride[] @relation("RiderRides")
+  ridesDriven    Ride[] @relation("DriverRides")
+
+  payouts         Payout[]   @relation("HostPayouts")
+  claimsFiled     Claim[]    @relation("ClaimReporter")
+  adminActions    AuditLog[] @relation("AuditAdmin")
+  refundsIssued   Refund[]   @relation("RefundAdmin")
+  payoutsRecorded Payout[]   @relation("PayoutAdmin")
 }
 
 model Listing {
-  id            String    @id @default(cuid())
-  hostId        String
-  host          User      @relation("HostListings", fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   User   @relation("HostListings", fields: [hostId], references: [id], onDelete: Cascade)
 
-  title         String
-  description   String
-  make          String
-  model         String
-  year          Int
-  pricePerDay   Decimal   @db.Decimal(10, 2)
-  city          String
-  state         String
-  country       String    @default("US")
-  latitude      Float?
-  longitude     Float?
-  seats         Int       @default(4)
-  transmission  String    @default("AUTOMATIC")
-  fuelType      String    @default("GASOLINE")
-  imageUrls     String[]
-  isActive      Boolean   @default(true)
+  title           String
+  description     String
+  make            String
+  model           String
+  year            Int
+  pricePerDay     Decimal               @db.Decimal(10, 2)
+  city            String
+  state           String
+  country         String                @default("US")
+  latitude        Float?
+  longitude       Float?
+  seats           Int                   @default(4)
+  transmission    String                @default("AUTOMATIC")
+  fuelType        String                @default("GASOLINE")
+  imageUrls       String[]
+  isActive        Boolean               @default(true)
   approvalStatus  ListingApprovalStatus @default(PENDING)
+  rejectionReason String?
+  adminNotes      String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  bookings      Booking[]
-  reviews       Review[]
+  bookings Booking[]
+  reviews  Review[]
 
   @@index([city, state])
   @@index([hostId])
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  listingId     String
-  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  renterId      String
-  renter        User          @relation("RenterBookings", fields: [renterId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  renterId  String
+  renter    User    @relation("RenterBookings", fields: [renterId], references: [id], onDelete: Cascade)
 
-  startDate     DateTime
-  endDate       DateTime
-  totalPrice    Decimal       @db.Decimal(10, 2)
-  status        BookingStatus @default(PENDING)
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Decimal       @db.Decimal(10, 2)
+  status     BookingStatus @default(PENDING)
 
-  payment       Payment?
-  review        Review?
+  payment Payment?
+  review  Review?
+  claims  Claim[]
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  // Filled in when the booking is included in a host payout (the fee rate is locked in at that point).
+  payoutId     String?
+  payout       Payout?  @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  platformFee  Decimal? @db.Decimal(10, 2)
+  hostEarnings Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([listingId])
   @@index([renterId])
+  @@index([payoutId])
 }
 
 model Payment {
@@ -125,63 +175,141 @@ model Payment {
   booking               Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   stripePaymentIntentId String        @unique
   amount                Decimal       @db.Decimal(10, 2)
+  refundedAmount        Decimal       @default(0) @db.Decimal(10, 2)
   status                PaymentStatus @default(PENDING)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
+
+  refunds Refund[]
 }
 
 model Review {
-  id          String   @id @default(cuid())
-  bookingId   String   @unique
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  listingId   String
-  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  authorId    String
-  author      User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  targetId    String
-  target      User     @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetId String
+  target   User   @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
-  rating      Int
-  comment     String?
-  createdAt   DateTime @default(now())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
 
   @@index([listingId])
 }
 
 model Ride {
-  id              String     @id @default(cuid())
+  id String @id @default(cuid())
 
-  riderId         String
-  rider           User       @relation("RiderRides", fields: [riderId], references: [id], onDelete: Cascade)
-  driverId        String?
-  driver          User?      @relation("DriverRides", fields: [driverId], references: [id], onDelete: SetNull)
+  riderId  String
+  rider    User    @relation("RiderRides", fields: [riderId], references: [id], onDelete: Cascade)
+  driverId String?
+  driver   User?   @relation("DriverRides", fields: [driverId], references: [id], onDelete: SetNull)
 
-  pickupAddress   String
-  pickupPlaceId   String
-  dropoffAddress  String
-  dropoffPlaceId  String
+  pickupAddress  String
+  pickupPlaceId  String
+  dropoffAddress String
+  dropoffPlaceId String
 
   // null means "as soon as possible"
-  scheduledAt     DateTime?
-  riderPhone      String
-  notes           String?
+  scheduledAt DateTime?
+  riderPhone  String
+  notes       String?
 
   // Price is calculated on the server and locked when the ride is booked.
   distanceMeters  Int
   durationMinutes Int
-  ratePerMinute   Decimal    @db.Decimal(8, 2)
-  minimumFare     Decimal    @db.Decimal(8, 2)
-  totalPrice      Decimal    @db.Decimal(10, 2)
-  currency        String     @default("USD")
+  ratePerMinute   Decimal @db.Decimal(8, 2)
+  minimumFare     Decimal @db.Decimal(8, 2)
+  totalPrice      Decimal @db.Decimal(10, 2)
+  currency        String  @default("USD")
 
-  status          RideStatus @default(REQUESTED)
-  paid            Boolean    @default(false)
+  status RideStatus @default(REQUESTED)
+  paid   Boolean    @default(false)
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([riderId])
   @@index([driverId])
   @@index([status, scheduledAt])
+}
+
+model Refund {
+  id             String   @id @default(cuid())
+  paymentId      String
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  stripeRefundId String   @unique
+  amount         Decimal  @db.Decimal(10, 2)
+  reason         String
+  adminId        String?
+  admin          User?    @relation("RefundAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+// Money sent to a host outside the app (bank transfer, Zelle…), recorded by an admin.
+model Payout {
+  id        String   @id @default(cuid())
+  hostId    String
+  host      User     @relation("HostPayouts", fields: [hostId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(10, 2)
+  method    String
+  reference String?
+  note      String?
+  adminId   String?
+  admin     User?    @relation("PayoutAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+
+  @@index([hostId])
+}
+
+// Damage and other trip issues reported by a host or renter.
+model Claim {
+  id              String      @id @default(cuid())
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reporterId      String
+  reporter        User        @relation("ClaimReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  type            ClaimType
+  description     String
+  amountRequested Decimal?    @db.Decimal(10, 2)
+  imageUrls       String[]
+  status          ClaimStatus @default(OPEN)
+  resolution      String?
+  amountApproved  Decimal?    @db.Decimal(10, 2)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+// Every change an admin makes, for accountability.
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String?
+  admin      User?    @relation("AuditAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// Simple key/value platform settings, e.g. the platform fee.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
