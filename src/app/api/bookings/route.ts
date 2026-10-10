@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { differenceInCalendarDays } from 'date-fns';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import { isListingLive } from '@/lib/listingVisibility';
 
 const bookingSchema = z.object({
   listingId: z.string(),
@@ -50,8 +51,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'End date must be after start date.' }, { status: 400 });
   }
 
-  const listing = await prisma.listing.findUnique({ where: { id: listingId } });
-  if (!listing || !listing.isActive || listing.approvalStatus !== 'APPROVED') {
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    include: { host: { select: { suspendedAt: true } } }
+  });
+  if (!listing || !isListingLive(listing)) {
     return NextResponse.json({ error: 'Listing not available.' }, { status: 404 });
   }
 

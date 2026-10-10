@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
 
 export default async function CarsPage() {
   const listings = await prisma.listing.findMany({
-where: {
-  isActive: true,
-  approvalStatus: "APPROVED",
-},
+    where: PUBLIC_LISTING_WHERE,
     orderBy: { createdAt: "desc" },
     include: {
       reviews: {

@@ -51,5 +51,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Keeps refund totals right when a refund is made directly in the Stripe dashboard.
+  // Stripe is the source of truth, so the total is copied rather than added to.
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge;
+    const intentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
+    if (intentId) {
+      await prisma.payment.updateMany({
+        where: { stripePaymentIntentId: intentId },
+        data: {
+          refundedAmount: charge.amount_refunded / 100,
+          ...(charge.refunded ? { status: 'REFUNDED' } : {})
+        }
+      });
+    }
+  }
+
   return NextResponse.json({ received: true });
 }

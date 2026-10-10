@@ -26,7 +26,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password.");
+        setError(
+          result.error === "AccountSuspended"
+            ? "This account has been suspended. Contact support if you think this is a mistake."
+            : "Invalid email or password."
+        );
         return;
       }
 

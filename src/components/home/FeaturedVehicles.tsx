@@ -1,12 +1,10 @@
 import VehicleCard from "@/components/cards/VehicleCard";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
 
 export default async function FeaturedVehicles() {
   const listings = await prisma.listing.findMany({
-    where: {
-      isActive: true,
-      approvalStatus: "APPROVED",
-    },
+    where: PUBLIC_LISTING_WHERE,
     orderBy: {
       createdAt: "desc",
     },

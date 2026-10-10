@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { getSessionUser } from "@/lib/rides";
+import { rateLimit } from "@/lib/rateLimit";
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -12,6 +14,15 @@ const ALLOWED_TYPES = [
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  // Only signed-in users may store files on the server.
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+  }
+  if (!rateLimit(`upload:${user.id}`, 40, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 });
+  }
+
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];

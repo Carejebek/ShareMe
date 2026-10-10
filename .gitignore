@@ -26,3 +26,6 @@ prisma/dev.db
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Private user uploads (driver licences)
+/private-uploads

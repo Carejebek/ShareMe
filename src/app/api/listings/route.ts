@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import { PUBLIC_LISTING_WHERE } from '@/lib/listingVisibility';
 
 // GET /api/listings?city=&startDate=&endDate=&minPrice=&maxPrice=&seats=&mine=true
 export async function GET(req: NextRequest) {
@@ -24,8 +25,7 @@ export async function GET(req: NextRequest) {
     }
     where.hostId = (session.user as any).id;
   } else {
-    where.isActive = true;
-    where.approvalStatus = 'APPROVED';
+    Object.assign(where, PUBLIC_LISTING_WHERE);
   }
 
   if (city) {

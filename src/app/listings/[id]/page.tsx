@@ -53,7 +53,9 @@ export default async function ListingDetailsPage({
             Preview only — this car isn&apos;t on the marketplace
             {listing.approvalStatus !== "APPROVED"
               ? ` (approval: ${listing.approvalStatus.toLowerCase()})`
-              : " (taken offline)"}
+              : !listing.isActive
+                ? " (taken offline)"
+                : " (host account suspended)"}
             . Renters can&apos;t see or book it.
           </p>
         )}

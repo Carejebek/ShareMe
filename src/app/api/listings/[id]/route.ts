@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const listing = await prisma.listing.findUnique({
     where: { id },
     include: {
-      host: { select: { id: true, name: true, avatarUrl: true, createdAt: true } },
+      host: { select: { id: true, name: true, avatarUrl: true, createdAt: true, suspendedAt: true } },
       reviews: {
         include: { author: { select: { name: true } } },
         orderBy: { createdAt: 'desc' }
@@ -22,7 +22,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Listing not found.' }, { status: 404 });
   }
 
-  return NextResponse.json({ ...listing, pricePerDay: Number(listing.pricePerDay) });
+  const { suspendedAt: _hidden, ...host } = listing.host;
+  return NextResponse.json({ ...listing, host, pricePerDay: Number(listing.pricePerDay) });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
