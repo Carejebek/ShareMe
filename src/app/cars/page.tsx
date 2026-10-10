@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
 
+// Render on every request so newly approved or removed cars show up immediately.
+export const dynamic = "force-dynamic";
+
 export default async function CarsPage() {
   const listings = await prisma.listing.findMany({
     where: PUBLIC_LISTING_WHERE,

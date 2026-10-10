@@ -7,6 +7,9 @@ import ImpactStats from "@/components/home/ImpactStats";
 import HowItWorks from "@/components/home/HowItWorks";
 import HostOpportunity from "@/components/home/HostOpportunity";
 
+// Render on every request so newly approved or removed cars show up immediately.
+export const dynamic = "force-dynamic";
+
 
 const categories = [
   { name: "Luxury", icon: "◆" },
