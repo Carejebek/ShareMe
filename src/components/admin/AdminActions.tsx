@@ -34,6 +34,7 @@ export function AdminActionButton({
   variant = "dark",
   disabled,
   redirectTo,
+  promptFor,
 }: {
   endpoint: string;
   method?: Method;
@@ -44,17 +45,30 @@ export function AdminActionButton({
   variant?: keyof typeof VARIANTS;
   disabled?: boolean;
   redirectTo?: string;
+  // Asks the admin for text (e.g. a rejection reason) and sends it as body[field].
+  promptFor?: { field: string; message: string };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function run() {
-    if (confirm && !window.confirm(confirm)) return;
+    let payload = body;
+    if (promptFor) {
+      const answer = window.prompt(promptFor.message);
+      if (answer === null) return;
+      if (!answer.trim()) {
+        setError("A reason is required.");
+        return;
+      }
+      payload = { ...body, [promptFor.field]: answer.trim() };
+    } else if (confirm && !window.confirm(confirm)) {
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      await send(endpoint, method, body);
+      await send(endpoint, method, payload);
       if (redirectTo) router.push(redirectTo);
       router.refresh();
     } catch (e) {

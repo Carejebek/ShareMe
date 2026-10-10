@@ -80,6 +80,19 @@ const BADGE_STYLES: Record<string, string> = {
   ACTIVE: "bg-green-100 text-green-800",
   INACTIVE: "bg-neutral-200 text-neutral-700",
   LIVE: "bg-green-100 text-green-800",
+  // accounts
+  SUSPENDED: "bg-red-600 text-white",
+  VERIFIED: "bg-green-100 text-green-800",
+  UNVERIFIED: "bg-neutral-100 text-neutral-500",
+  // claims
+  OPEN: "bg-yellow-100 text-yellow-800",
+  IN_REVIEW: "bg-blue-100 text-blue-800",
+  RESOLVED: "bg-green-100 text-green-800",
+  DENIED: "bg-neutral-200 text-neutral-700",
+  // payouts
+  PAID_OUT: "bg-green-100 text-green-800",
+  AWAITING_PAYOUT: "bg-orange-100 text-orange-800",
+  PARTIALLY_REFUNDED: "bg-purple-100 text-purple-800",
 };
 
 export function Badge({ value, label }: { value: string; label?: string }) {

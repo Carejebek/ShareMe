@@ -35,7 +35,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
     prisma.listing.findMany({
       where,
       include: {
-        host: { select: { id: true, name: true } },
+        host: { select: { id: true, name: true, verificationStatus: true, suspendedAt: true } },
         _count: { select: { bookings: true } },
       },
       // Pending first so the review queue is always at the top.
@@ -109,6 +109,9 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
               </Td>
               <Td>
                 <TextLink href={`/dashboard/admin/users/${listing.host.id}`}>{listing.host.name}</TextLink>
+                <div className="mt-1">
+                  {listing.host.suspendedAt ? <Badge value="SUSPENDED" /> : <Badge value={listing.host.verificationStatus} />}
+                </div>
               </Td>
               <Td className="font-bold">{money(listing.pricePerDay)}/day</Td>
               <Td>{listing._count.bookings}</Td>
@@ -121,21 +124,24 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
               <Td className="text-neutral-500">{shortDate(listing.createdAt)}</Td>
               <Td>
                 <div className="flex flex-wrap gap-2">
-                  {listing.approvalStatus !== "APPROVED" && (
-                    <AdminActionButton
-                      endpoint={`/api/admin/listings/${listing.id}/approval`}
-                      body={{ status: "APPROVED" }}
-                      label="Approve"
-                      variant="green"
-                    />
-                  )}
+                  {listing.approvalStatus !== "APPROVED" &&
+                    (listing.host.verificationStatus === "VERIFIED" ? (
+                      <AdminActionButton
+                        endpoint={`/api/admin/listings/${listing.id}/approval`}
+                        body={{ status: "APPROVED" }}
+                        label="Approve"
+                        variant="green"
+                      />
+                    ) : (
+                      <span className="max-w-[140px] text-xs text-neutral-500">Host licence not verified yet</span>
+                    ))}
                   {listing.approvalStatus !== "REJECTED" && (
                     <AdminActionButton
                       endpoint={`/api/admin/listings/${listing.id}/approval`}
                       body={{ status: "REJECTED" }}
                       label="Reject"
                       variant="outline"
-                      confirm={`Reject the ${listing.make} ${listing.model}? It will be hidden from the marketplace.`}
+                      promptFor={{ field: "reason", message: `Why is the ${listing.make} ${listing.model} being rejected? The host will see this.` }}
                     />
                   )}
                 </div>

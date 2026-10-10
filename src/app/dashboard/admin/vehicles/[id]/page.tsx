@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { AdminActionButton } from "@/components/admin/AdminActions";
+import AdminForm from "@/components/admin/AdminForm";
+import AuditHistory from "@/components/admin/AuditHistory";
 import { Badge, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +13,9 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
   const listing = await prisma.listing.findUnique({
     where: { id },
     include: {
-      host: { select: { id: true, name: true, email: true, phone: true, createdAt: true } },
+      host: {
+        select: { id: true, name: true, email: true, phone: true, createdAt: true, verificationStatus: true, suspendedAt: true },
+      },
       bookings: {
         include: { renter: { select: { id: true, name: true } }, payment: { select: { status: true } } },
         orderBy: { startDate: "desc" },
@@ -30,7 +34,8 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
   const rating = listing.reviews.length
     ? (listing.reviews.reduce((sum, r) => sum + r.rating, 0) / listing.reviews.length).toFixed(1)
     : "—";
-  const isLive = listing.isActive && listing.approvalStatus === "APPROVED";
+  const isLive = listing.isActive && listing.approvalStatus === "APPROVED" && !listing.host.suspendedAt;
+  const hostVerified = listing.host.verificationStatus === "VERIFIED";
 
   return (
     <div className="space-y-6">
@@ -48,6 +53,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
                 body={{ status: "APPROVED" }}
                 label="Approve"
                 variant="green"
+                disabled={!hostVerified}
               />
             )}
             {listing.approvalStatus !== "REJECTED" && (
@@ -56,7 +62,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
                 body={{ status: "REJECTED" }}
                 label="Reject"
                 variant="red"
-                confirm="Reject this vehicle? It will be hidden from the marketplace."
+                promptFor={{ field: "reason", message: "Why is this vehicle being rejected? The host will see this." }}
               />
             )}
             <AdminActionButton
@@ -79,6 +85,24 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
         <Badge value={listing.isActive ? "ACTIVE" : "INACTIVE"} />
         {isLive && <Badge value="LIVE" label="LIVE ON MARKETPLACE" />}
       </div>
+
+      {!hostVerified && listing.approvalStatus !== "APPROVED" && (
+        <p className="rounded-2xl bg-orange-50 px-5 py-4 text-sm font-bold text-orange-900">
+          This car can&apos;t be approved until the host&apos;s driver&apos;s licence is verified (currently{" "}
+          {listing.host.verificationStatus.toLowerCase()}).{" "}
+          <TextLink href={`/dashboard/admin/users/${listing.host.id}`}>Review the host →</TextLink>
+        </p>
+      )}
+      {listing.host.suspendedAt && (
+        <p className="rounded-2xl bg-red-50 px-5 py-4 text-sm font-bold text-red-800">
+          The host is suspended, so this car is hidden from the marketplace.
+        </p>
+      )}
+      {listing.approvalStatus === "REJECTED" && listing.rejectionReason && (
+        <p className="rounded-2xl bg-neutral-100 px-5 py-4 text-sm text-neutral-700">
+          <strong>Rejection reason (shown to host):</strong> {listing.rejectionReason}
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Bookings" value={listing.bookings.length} />
@@ -124,6 +148,9 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           </DetailRow>
           <DetailRow label="Phone">{listing.host.phone || "—"}</DetailRow>
           <DetailRow label="Member since">{shortDate(listing.host.createdAt)}</DetailRow>
+          <DetailRow label="Licence">
+            <Badge value={listing.host.verificationStatus} />
+          </DetailRow>
         </Card>
       </div>
 
@@ -174,6 +201,17 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           </ul>
         )}
       </Card>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card title="Internal notes">
+          <p className="mb-4 text-sm text-neutral-500">Only admins can see these.</p>
+          <AdminForm
+            endpoint={`/api/admin/listings/${listing.id}`}
+            submitLabel="Save notes"
+            fields={[{ name: "adminNotes", label: "Notes", type: "textarea", defaultValue: listing.adminNotes ?? "" }]}
+          />
+        </Card>
+        <AuditHistory targetType="LISTING" targetId={listing.id} />
+      </div>
     </div>
   );
 }

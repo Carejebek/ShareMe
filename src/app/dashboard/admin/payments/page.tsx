@@ -43,24 +43,27 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       take: ADMIN_PAGE_SIZE,
     }),
     prisma.payment.count({ where }),
-    prisma.payment.groupBy({ by: ["status"], _sum: { amount: true }, _count: { _all: true } }),
+    prisma.payment.groupBy({ by: ["status"], _sum: { amount: true, refundedAmount: true }, _count: { _all: true } }),
   ]);
 
-  const sum = (s: string) => totals.find((t) => t.status === s)?._sum.amount ?? 0;
+  const sum = (s: string) => Number(totals.find((t) => t.status === s)?._sum.amount ?? 0);
+  // Refunds: fully refunded payments plus partial refunds on otherwise successful ones.
+  const refundedTotal = totals.reduce((total, t) => total + Number(t._sum.refundedAmount ?? 0), 0);
+  const partialRefunds = Number(totals.find((t) => t.status === "SUCCEEDED")?._sum.refundedAmount ?? 0);
   const count = (s: string) => totals.find((t) => t.status === s)?._count._all ?? 0;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Payments"
-        description="Rental payments processed through Stripe. Refunds are issued from the Stripe dashboard."
+        description="Rental payments processed through Stripe. To refund, open the booking."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard tone="brand" label="Collected" value={money(sum("SUCCEEDED"))} hint={`${count("SUCCEEDED")} payments`} href="?status=SUCCEEDED" />
+        <StatCard tone="brand" label="Collected (net of refunds)" value={money(sum("SUCCEEDED") - partialRefunds)} hint={`${count("SUCCEEDED")} payments`} href="?status=SUCCEEDED" />
         <StatCard label="Pending" value={money(sum("PENDING"))} hint={`${count("PENDING")} payments`} href="?status=PENDING" />
         <StatCard tone={count("FAILED") ? "warn" : "light"} label="Failed" value={money(sum("FAILED"))} hint={`${count("FAILED")} payments`} href="?status=FAILED" />
-        <StatCard label="Refunded" value={money(sum("REFUNDED"))} hint={`${count("REFUNDED")} payments`} href="?status=REFUNDED" />
+        <StatCard label="Refunded" value={money(refundedTotal)} hint={`${count("REFUNDED")} fully refunded`} href="?status=REFUNDED" />
       </div>
 
       <FilterBar
@@ -85,9 +88,18 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
           {payments.map((payment) => (
             <tr key={payment.id} className="hover:bg-neutral-50">
               <Td className="text-neutral-600">{dateTime(payment.createdAt)}</Td>
-              <Td className="font-black">{money(payment.amount)}</Td>
               <Td>
-                <Badge value={payment.status} />
+                <span className="font-black">{money(payment.amount)}</span>
+                {Number(payment.refundedAmount) > 0 && (
+                  <p className="text-xs font-bold text-purple-700">−{money(payment.refundedAmount)} refunded</p>
+                )}
+              </Td>
+              <Td>
+                {payment.status === "SUCCEEDED" && Number(payment.refundedAmount) > 0 ? (
+                  <Badge value="PARTIALLY_REFUNDED" label="PARTLY REFUNDED" />
+                ) : (
+                  <Badge value={payment.status} />
+                )}
               </Td>
               <Td>
                 <TextLink href={`/dashboard/admin/users/${payment.booking.renter.id}`}>{payment.booking.renter.name}</TextLink>

@@ -2,15 +2,18 @@ import Link from "next/link";
 import { Badge, Card, EmptyState, PageHeader, StatCard, TextLink } from "@/components/admin/ui";
 import { money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { getUnpaidBookings, owedFor } from "@/lib/payouts";
+import { getPlatformFeePercent } from "@/lib/settings";
 
 const DAY = 24 * 60 * 60 * 1000;
 
+// What renters paid, minus anything refunded since.
 async function revenueSince(since?: Date) {
   const result = await prisma.payment.aggregate({
-    where: { status: "SUCCEEDED", ...(since ? { createdAt: { gte: since } } : {}) },
-    _sum: { amount: true },
+    where: { status: { in: ["SUCCEEDED", "REFUNDED"] }, ...(since ? { createdAt: { gte: since } } : {}) },
+    _sum: { amount: true, refundedAmount: true },
   });
-  return Number(result._sum.amount ?? 0);
+  return Number(result._sum.amount ?? 0) - Number(result._sum.refundedAmount ?? 0);
 }
 
 export default async function AdminOverviewPage() {
@@ -37,6 +40,10 @@ export default async function AdminOverviewPage() {
     openRides,
     latestBookings,
     latestUsers,
+    pendingVerifications,
+    openClaims,
+    unpaidBookings,
+    feePercent,
   ] = await Promise.all([
     revenueSince(startOfToday),
     revenueSince(new Date(now.getTime() - 7 * DAY)),
@@ -71,7 +78,12 @@ export default async function AdminOverviewPage() {
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
+    prisma.user.count({ where: { verificationStatus: "PENDING" } }),
+    prisma.claim.count({ where: { status: { in: ["OPEN", "IN_REVIEW"] } } }),
+    getUnpaidBookings(),
+    getPlatformFeePercent(),
   ]);
+  const owedToHosts = owedFor(unpaidBookings, feePercent).host;
 
   const roleCount = (role: string) => usersByRole.find((r) => r.role === role)?._count._all ?? 0;
   const totalUsers = usersByRole.reduce((sum, r) => sum + r._count._all, 0);
@@ -80,9 +92,12 @@ export default async function AdminOverviewPage() {
 
   const attention = [
     { label: "Vehicles awaiting approval", count: pendingVehicles.length, href: "/dashboard/admin/vehicles?approval=PENDING" },
+    { label: "Licences to verify", count: pendingVerifications, href: "/dashboard/admin/verifications" },
+    { label: "Open claims", count: openClaims, href: "/dashboard/admin/claims?status=OPEN" },
     { label: "Unpaid / pending bookings", count: pendingBookings, href: "/dashboard/admin/bookings?status=PENDING" },
     { label: "Failed payments", count: failedPayments, href: "/dashboard/admin/payments?status=FAILED" },
     { label: "Rides without a driver", count: openRides, href: "/dashboard/admin/rides?status=REQUESTED" },
+    { label: `Host payouts due (${money(owedToHosts)})`, count: unpaidBookings.length, href: "/dashboard/admin/payouts" },
   ].filter((item) => item.count > 0);
 
   return (

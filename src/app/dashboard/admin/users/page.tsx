@@ -4,16 +4,21 @@ import { ADMIN_PAGE_SIZE, oneOf, pageNumber, param, requireAdmin, shortDate, typ
 import { prisma } from "@/lib/prisma";
 
 const ROLES = ["RENTER", "HOST", "DRIVER", "ADMIN"] as const;
+const VERIFICATION = ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"] as const;
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin();
   const params = await searchParams;
   const q = param(params, "q");
   const role = oneOf(param(params, "role"), ROLES);
+  const verification = oneOf(param(params, "verification"), VERIFICATION);
+  const account = param(params, "account");
   const page = pageNumber(params);
 
   const where: Prisma.UserWhereInput = {
     ...(role ? { role } : {}),
+    ...(verification ? { verificationStatus: verification } : {}),
+    ...(account === "suspended" ? { suspendedAt: { not: null } } : account === "active" ? { suspendedAt: null } : {}),
     ...(q
       ? {
           OR: [
@@ -35,6 +40,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         phone: true,
         role: true,
         createdAt: true,
+        suspendedAt: true,
+        verificationStatus: true,
         _count: { select: { listings: true, bookings: true, ridesDriven: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -70,13 +77,30 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
               ...ROLES.map((r) => ({ value: r, label: r.charAt(0) + r.slice(1).toLowerCase() })),
             ],
           },
+          {
+            name: "verification",
+            value: verification ?? "",
+            options: [
+              { value: "", label: "Any licence status" },
+              ...VERIFICATION.map((v) => ({ value: v, label: `Licence: ${v.charAt(0) + v.slice(1).toLowerCase()}` })),
+            ],
+          },
+          {
+            name: "account",
+            value: account,
+            options: [
+              { value: "", label: "Active & suspended" },
+              { value: "active", label: "Active only" },
+              { value: "suspended", label: "Suspended only" },
+            ],
+          },
         ]}
       />
 
       {users.length === 0 ? (
         <EmptyState>No users match these filters.</EmptyState>
       ) : (
-        <Table head={["User", "Phone", "Role", "Vehicles", "Bookings", "Rides driven", "Joined"]}>
+        <Table head={["User", "Phone", "Role", "Licence", "Vehicles", "Bookings", "Rides driven", "Joined"]}>
           {users.map((user) => (
             <tr key={user.id} className="hover:bg-neutral-50">
               <Td>
@@ -85,7 +109,13 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
               </Td>
               <Td className="text-neutral-600">{user.phone || "—"}</Td>
               <Td>
-                <Badge value={user.role} />
+                <div className="flex flex-col items-start gap-1">
+                  <Badge value={user.role} />
+                  {user.suspendedAt && <Badge value="SUSPENDED" />}
+                </div>
+              </Td>
+              <Td>
+                <Badge value={user.verificationStatus} />
               </Td>
               <Td>{user._count.listings}</Td>
               <Td>{user._count.bookings}</Td>

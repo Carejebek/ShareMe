@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
-import { AdminSelectAction } from "@/components/admin/AdminActions";
+import { AdminActionButton, AdminSelectAction } from "@/components/admin/AdminActions";
+import AdminForm from "@/components/admin/AdminForm";
+import AuditHistory from "@/components/admin/AuditHistory";
+import VerificationReview from "@/components/admin/VerificationReview";
 import { Badge, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { dateTime, money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +29,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       role: true,
       createdAt: true,
       updatedAt: true,
+      suspendedAt: true,
+      suspensionReason: true,
+      adminNotes: true,
+      verificationStatus: true,
+      licenseImagePath: true,
+      verificationNote: true,
+      verifiedAt: true,
+      payouts: { select: { id: true, amount: true, method: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 20 },
       listings: {
         select: { id: true, year: true, make: true, model: true, pricePerDay: true, isActive: true, approvalStatus: true },
         orderBy: { createdAt: "desc" },
@@ -72,21 +83,51 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
         description={user.email}
         actions={
           isSelf ? (
-            <span className="text-sm text-neutral-500">You can&apos;t change your own role.</span>
+            <span className="text-sm text-neutral-500">You can&apos;t change your own role or suspend yourself.</span>
           ) : (
-            <label className="flex items-center gap-3 text-sm font-bold text-neutral-600">
-              Role
-              <AdminSelectAction
-                endpoint={`/api/admin/users/${user.id}`}
-                field="role"
-                value={user.role}
-                options={ROLE_OPTIONS}
-                confirm={`Change ${user.name}'s role to {value}?`}
-              />
-            </label>
+            <>
+              <label className="flex items-center gap-3 text-sm font-bold text-neutral-600">
+                Role
+                <AdminSelectAction
+                  endpoint={`/api/admin/users/${user.id}`}
+                  field="role"
+                  extraBody={{ action: "role" }}
+                  value={user.role}
+                  options={ROLE_OPTIONS}
+                  confirm={`Change ${user.name}'s role to {value}?`}
+                />
+              </label>
+              {user.suspendedAt ? (
+                <AdminActionButton
+                  endpoint={`/api/admin/users/${user.id}`}
+                  body={{ action: "unsuspend" }}
+                  label="Lift suspension"
+                  variant="green"
+                  confirm={`Let ${user.name} log in again? Their cars will reappear on the marketplace.`}
+                />
+              ) : (
+                <AdminActionButton
+                  endpoint={`/api/admin/users/${user.id}`}
+                  body={{ action: "suspend" }}
+                  label="Suspend"
+                  variant="red"
+                  promptFor={{
+                    field: "reason",
+                    message: `Why is ${user.name} being suspended? They'll be logged out and their cars hidden. (Internal — not shown to them.)`,
+                  }}
+                />
+              )}
+            </>
           )
         }
       />
+
+      {user.suspendedAt && (
+        <p className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-800">
+          <strong>Suspended {dateTime(user.suspendedAt)}.</strong> {user.suspensionReason} They can&apos;t log in, and their cars are
+          hidden from the marketplace.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Spent on rentals" value={money(spent._sum.amount)} />
@@ -109,6 +150,10 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           </div>
         </div>
         {user.bio && <p className="mt-4 text-sm text-neutral-600">{user.bio}</p>}
+      </Card>
+
+      <Card title="Driver's licence">
+        <VerificationReview user={user} />
       </Card>
 
       {user.listings.length > 0 && (
@@ -176,6 +221,32 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           </Table>
         </Card>
       )}
+      {user.payouts.length > 0 && (
+        <Card title="Payouts received">
+          <Table head={["Date", "Amount", "Paid via"]}>
+            {user.payouts.map((payout) => (
+              <tr key={payout.id}>
+                <Td>{dateTime(payout.createdAt)}</Td>
+                <Td className="font-bold">{money(payout.amount)}</Td>
+                <Td>{payout.method}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Card>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card title="Internal notes">
+          <p className="mb-4 text-sm text-neutral-500">Only admins can see these.</p>
+          <AdminForm
+            endpoint={`/api/admin/users/${user.id}`}
+            extraBody={{ action: "notes" }}
+            submitLabel="Save notes"
+            fields={[{ name: "adminNotes", label: "Notes", type: "textarea", defaultValue: user.adminNotes ?? "" }]}
+          />
+        </Card>
+        <AuditHistory targetType="USER" targetId={user.id} />
+      </div>
     </div>
   );
 }
