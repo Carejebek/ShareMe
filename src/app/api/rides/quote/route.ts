@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { computeRoute, isValidPlaceId, MapsError } from '@/lib/maps';
+import { computeRoute, isValidPlaceId, MapsError, routeImageUrl } from '@/lib/maps';
 import { calculateFare } from '@/lib/pricing';
 import { clientIp, rateLimit } from '@/lib/rateLimit';
 
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       distanceMeters: route.distanceMeters,
       durationMinutes: fare.minutes,
-      fare
+      fare,
+      mapUrl: routeImageUrl(route.polyline)
     });
   } catch (err) {
     const status = err instanceof MapsError ? err.status : 500;

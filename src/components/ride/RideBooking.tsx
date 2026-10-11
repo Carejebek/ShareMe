@@ -19,6 +19,7 @@ interface Quote {
     minimumApplied: boolean;
     currency: string;
   };
+  mapUrl?: string | null;
 }
 
 // <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" in local time
@@ -42,6 +43,7 @@ export default function RideBooking() {
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mapFailed, setMapFailed] = useState(false);
 
   const minDateTime = useMemo(() => localInputValue(new Date(Date.now() + 30 * 60_000)), []);
 
@@ -56,6 +58,7 @@ export default function RideBooking() {
   // Re-price whenever the addresses or time change
   useEffect(() => {
     setQuote(null);
+    setMapFailed(false);
     if (!readyForQuote) return;
     let cancelled = false;
     setQuoting(true);
@@ -186,6 +189,16 @@ export default function RideBooking() {
             <p className="mt-3 text-neutral-500">Enter pickup and drop-off addresses to see your price.</p>
           )}
           {quoting && <p className="mt-3 text-neutral-500">Calculating…</p>}
+
+          {quote?.mapUrl && !mapFailed && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={quote.mapUrl}
+              alt="Map of your route"
+              onError={() => setMapFailed(true)}
+              className="mt-4 aspect-[2/1] w-full rounded-xl border border-neutral-200 bg-neutral-100 object-cover"
+            />
+          )}
 
           {quote && (
             <div className="mt-3">

@@ -1,8 +1,12 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+import { getMapsApiKey } from '@/lib/integrations';
+
 // Google Maps Platform helpers (server-side only; the key never reaches the browser).
 // Enable these two APIs on the key's Google Cloud project:
 //   - Places API (New)   -> address search
 //   - Routes API         -> drive time and distance
-// Env: GOOGLE_MAPS_API_KEY (required)
+//   - Maps Static API    -> route preview image on the ride page (optional)
+// Key: set on Admin → Integrations, or GOOGLE_MAPS_API_KEY in .env
 //      RIDE_REGION_CODES=us,gh  (optional, limits address search to these countries)
 //      RIDE_TRAFFIC_AWARE=1     (optional, uses live/predicted traffic; costs more per request)
 
@@ -24,14 +28,15 @@ export interface AddressSuggestion {
 export interface RouteInfo {
   durationSeconds: number;
   distanceMeters: number;
+  polyline: string; // Google encoded polyline of the driving route ('' if unavailable)
 }
 
 const PLACE_ID_RE = /^[A-Za-z0-9_-]{10,300}$/;
 export const isValidPlaceId = (id: unknown): id is string =>
   typeof id === 'string' && PLACE_ID_RE.test(id);
 
-function apiKey(): string {
-  const key = process.env.GOOGLE_MAPS_API_KEY;
+async function apiKey(): Promise<string> {
+  const key = await getMapsApiKey();
   if (!key) throw new MapsError('Address search is not configured yet.', 503);
   return key;
 }
@@ -44,7 +49,7 @@ export async function autocomplete(input: string, sessionToken?: string): Promis
 
   const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey() },
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': await apiKey() },
     body: JSON.stringify({
       input,
       ...(sessionToken ? { sessionToken } : {}),
@@ -98,8 +103,8 @@ export async function computeRoute(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey(),
-      'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
+      'X-Goog-Api-Key': await apiKey(),
+      'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'
     },
     body: JSON.stringify(body)
   });
@@ -109,12 +114,79 @@ export async function computeRoute(
     throw new MapsError('Could not calculate the route right now.');
   }
 
-  const data = (await res.json()) as { routes?: { duration?: string; distanceMeters?: number }[] };
+  const data = (await res.json()) as {
+    routes?: { duration?: string; distanceMeters?: number; polyline?: { encodedPolyline?: string } }[];
+  };
   const route = data.routes?.[0];
   const seconds = route?.duration ? parseInt(route.duration.replace('s', ''), 10) : NaN;
   if (!route || !Number.isFinite(seconds)) {
     throw new MapsError('No driving route was found between those addresses.', 422);
   }
 
-  return { durationSeconds: seconds, distanceMeters: route.distanceMeters ?? 0 };
+  return {
+    durationSeconds: seconds,
+    distanceMeters: route.distanceMeters ?? 0,
+    polyline: route.polyline?.encodedPolyline ?? ''
+  };
+}
+
+// Route preview images. The quote API hands the browser a signed URL for the route it just priced,
+// so /api/maps/route-image can't be used to draw arbitrary maps on our key.
+function mapSignature(polyline: string): string {
+  const secret = process.env.INTEGRATIONS_SECRET || process.env.NEXTAUTH_SECRET || '';
+  return createHmac('sha256', `route-map:${secret}`).update(polyline).digest('base64url').slice(0, 32);
+}
+
+export function routeImageUrl(polyline: string): string | null {
+  if (!polyline || polyline.length > 6000) return null;
+  return `/api/maps/route-image?p=${encodeURIComponent(polyline)}&sig=${mapSignature(polyline)}`;
+}
+
+export function validRouteImageSignature(polyline: string, sig: string): boolean {
+  const expected = Buffer.from(mapSignature(polyline));
+  const given = Buffer.from(sig);
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+export async function fetchRouteImage(polyline: string): Promise<ArrayBuffer> {
+  const params = new URLSearchParams({
+    size: '640x320',
+    scale: '2',
+    maptype: 'roadmap',
+    path: `color:0xff5a1fff|weight:5|enc:${polyline}`,
+    key: await apiKey()
+  });
+  // Start (green) and end (red) markers from the polyline's first and last points.
+  const points = decodePolyline(polyline);
+  if (points.length) {
+    const [a, b] = [points[0], points[points.length - 1]];
+    params.append('markers', `color:0x16a34a|label:A|${a[0]},${a[1]}`);
+    params.append('markers', `color:0xdc2626|label:B|${b[0]},${b[1]}`);
+  }
+  const res = await fetch(`https://maps.googleapis.com/maps/api/staticmap?${params}`);
+  if (!res.ok || !(res.headers.get('content-type') || '').startsWith('image/')) {
+    console.error('Static map failed', res.status, await res.text().catch(() => ''));
+    throw new MapsError('The route map is unavailable right now.');
+  }
+  return res.arrayBuffer();
+}
+
+function decodePolyline(encoded: string): [number, number][] {
+  const points: [number, number][] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    for (const axis of [0, 1]) {
+      let result = 0, shift = 0, byte: number;
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20 && index < encoded.length);
+      const delta = result & 1 ? ~(result >> 1) : result >> 1;
+      if (axis === 0) lat += delta;
+      else lng += delta;
+    }
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
 }
