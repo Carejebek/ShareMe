@@ -125,7 +125,7 @@ export default function RideBooking() {
   return (
     <div className="grid gap-8 lg:grid-cols-5">
       <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm lg:col-span-3">
-        <AddressInput label="Pickup address" placeholder="Where should we pick you up?" value={pickup} onChange={setPickup} />
+        <AddressInput label="Pickup address" placeholder="Where should we pick you up?" value={pickup} onChange={setPickup} allowCurrentLocation />
         <AddressInput label="Drop-off address" placeholder="Where are you going?" value={dropoff} onChange={setDropoff} />
 
         <div>
@@ -186,7 +186,10 @@ export default function RideBooking() {
           <h2 className="text-lg font-black text-neutral-950">Your price</h2>
 
           {!readyForQuote && (
-            <p className="mt-3 text-neutral-500">Enter pickup and drop-off addresses to see your price.</p>
+            <p className="mt-3 text-neutral-500">
+              Enter your pickup and drop-off to see your price. It&apos;s based on the drive time from your pickup to your
+              destination.
+            </p>
           )}
           {quoting && <p className="mt-3 text-neutral-500">Calculating…</p>}
 

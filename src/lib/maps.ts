@@ -6,6 +6,7 @@ import { getMapsApiKey } from '@/lib/integrations';
 //   - Places API (New)   -> address search
 //   - Routes API         -> drive time and distance
 //   - Maps Static API    -> route preview image on the ride page (optional)
+//   - Geocoding API      -> "Use my current location" turns GPS coordinates into a pickup address
 // Key: set on Admin → Integrations, or GOOGLE_MAPS_API_KEY in .env
 //      RIDE_REGION_CODES=us,gh  (optional, limits address search to these countries)
 //      RIDE_TRAFFIC_AWARE=1     (optional, uses live/predicted traffic; costs more per request)
@@ -81,6 +82,32 @@ export async function autocomplete(input: string, sessionToken?: string): Promis
       main: p.structuredFormat?.mainText?.text || p.text?.text || '',
       secondary: p.structuredFormat?.secondaryText?.text || ''
     }));
+}
+
+// Turns the rider's GPS position into the nearest street address and its place ID, so a pickup
+// chosen by location goes through exactly the same pricing path as a typed address.
+export async function reverseGeocode(lat: number, lng: number): Promise<AddressSuggestion> {
+  const params = new URLSearchParams({
+    latlng: `${lat},${lng}`,
+    result_type: 'street_address|premise|subpremise|route',
+    key: await apiKey()
+  });
+  const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+  const data = (await res.json().catch(() => ({}))) as {
+    status?: string;
+    error_message?: string;
+    results?: { place_id: string; formatted_address: string }[];
+  };
+  if (!res.ok || (data.status !== 'OK' && data.status !== 'ZERO_RESULTS')) {
+    console.error('Reverse geocoding failed', res.status, data.status, data.error_message);
+    throw new MapsError('Could not look up your location right now.');
+  }
+  const result = data.results?.[0];
+  if (!result || !isValidPlaceId(result.place_id)) {
+    throw new MapsError('No street address was found at your location. Please type your pickup address.', 422);
+  }
+  const [main, ...rest] = result.formatted_address.split(', ');
+  return { placeId: result.place_id, description: result.formatted_address, main, secondary: rest.join(', ') };
 }
 
 export async function computeRoute(

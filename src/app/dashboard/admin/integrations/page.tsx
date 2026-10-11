@@ -173,11 +173,11 @@ export default async function AdminIntegrationsPage() {
         <Card title="Google Cloud setup">
           <ol className="list-decimal space-y-2 pl-4 text-[13px] text-slate-600">
             <li>
-              Enable <strong>Places API (New)</strong>, <strong>Routes API</strong> and <strong>Maps Static API</strong> on the project.
+              Enable <strong>Places API (New)</strong>, <strong>Routes API</strong>, <strong>Geocoding API</strong> and <strong>Maps Static API</strong> on the project.
             </li>
             <li>Turn on billing for the project (Google requires it, even within the free monthly credit).</li>
             <li>
-              Restrict the key to those three APIs. It&apos;s only used from this server, so an IP-address restriction to the server is
+              Restrict the key to those four APIs. It&apos;s only used from this server, so an IP-address restriction to the server is
               the safest option.
             </li>
             <li>Set a budget alert in Google Cloud Billing.</li>
