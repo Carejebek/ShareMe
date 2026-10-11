@@ -44,8 +44,9 @@ export default function TermsPage() {
       <h2>5. Rides</h2>
       <ul>
         <li>Ride prices are calculated from the estimated driving time between the pickup and destination you choose, and shown before you book.</li>
-        <li>The price is fixed when you book. Riders pay the driver at the end of the trip unless stated otherwise.</li>
-        <li>Riders can cancel before the driver is on the way.</li>
+        <li>The price is fixed when you book. Rides are paid by card: we place a hold for the fare when you book and charge it when the trip is completed.</li>
+        <li>Riders can cancel before the driver is on the way, and the hold is released. If no driver accepts the ride, it is cancelled and the hold is released.</li>
+        <li>Drivers must hold a valid driver&apos;s licence and insurance, and are approved by JayXZ before they can accept rides. JayXZ keeps a platform fee from each fare and pays the rest to the driver.</li>
       </ul>
 
       <h2>6. Text messages (SMS)</h2>

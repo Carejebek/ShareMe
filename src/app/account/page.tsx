@@ -71,6 +71,14 @@ export default async function AccountPage() {
         </div>
 
         <div className="rounded-3xl bg-white p-7 shadow-sm">
+          <h2 className="text-xl font-black">Drive with JayXZ</h2>
+          <p className="mt-2 text-sm text-neutral-600">Apply to drive, update your car or insurance, and open Dispatch once you&apos;re approved.</p>
+          <Link href="/drive" className="mt-4 inline-block font-black text-[#e62e1f]">
+            Go to the Drive page →
+          </Link>
+        </div>
+
+        <div className="rounded-3xl bg-white p-7 shadow-sm">
           <h2 className="text-xl font-black">Trip issues &amp; claims</h2>
           <p className="mt-2 text-sm text-neutral-600">Report damage or another problem with a trip, and follow up on reports you&apos;ve made.</p>
           <Link href="/dashboard/claims" className="mt-4 inline-block font-black text-[#e62e1f]">

@@ -17,6 +17,7 @@ const columns = [
     links: [
       { label: "Book a ride", href: "/ride" },
       { label: "My rides", href: "/dashboard/rides" },
+      { label: "Drive with JayXZ", href: "/drive" },
     ],
   },
   {
