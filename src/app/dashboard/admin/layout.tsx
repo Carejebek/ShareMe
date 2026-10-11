@@ -2,14 +2,14 @@ import type { ReactNode } from "react";
 import AdminShell, { type NavSection } from "@/components/admin/AdminShell";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
-import { UNPAID_EARNINGS_WHERE } from "@/lib/payouts";
+import { UNPAID_EARNINGS_WHERE, UNPAID_RIDES_WHERE } from "@/lib/payouts";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await requireAdmin();
 
-  const [pendingVehicles, pendingBookings, failedPayments, openRides, pendingVerifications, openClaims, unpaidBookings, failedSms] =
+  const [pendingVehicles, pendingBookings, failedPayments, openRides, pendingVerifications, openClaims, unpaidBookings, failedSms, pendingDrivers, unpaidRides] =
     await Promise.all([
       prisma.listing.count({ where: { approvalStatus: "PENDING" } }),
       prisma.booking.count({ where: { status: "PENDING" } }),
@@ -21,6 +21,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       prisma.smsMessage.count({
         where: { status: { in: ["failed", "undelivered"] }, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
       }),
+      prisma.driverProfile.count({ where: { status: "PENDING" } }),
+      prisma.ride.count({ where: UNPAID_RIDES_WHERE }),
     ]);
 
   const sections: NavSection[] = [
@@ -38,6 +40,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       title: "Trust & safety",
       items: [
         { label: "Verifications", href: "/dashboard/admin/verifications", icon: "shield", count: pendingVerifications, urgent: true },
+        { label: "Drivers", href: "/dashboard/admin/drivers", icon: "route", count: pendingDrivers, urgent: true },
         { label: "Claims", href: "/dashboard/admin/claims", icon: "alert", count: openClaims, urgent: true },
         { label: "Users", href: "/dashboard/admin/users", icon: "users" },
       ],
@@ -46,7 +49,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       title: "Finance",
       items: [
         { label: "Payments", href: "/dashboard/admin/payments", icon: "card", count: failedPayments, urgent: true },
-        { label: "Host payouts", href: "/dashboard/admin/payouts", icon: "wallet", count: unpaidBookings },
+        { label: "Payouts", href: "/dashboard/admin/payouts", icon: "wallet", count: unpaidBookings + unpaidRides },
       ],
     },
     {

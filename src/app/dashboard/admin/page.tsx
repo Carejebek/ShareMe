@@ -6,7 +6,7 @@ import { dateTime, money, requireAdmin, shortDate } from "@/lib/admin";
 import { AUDIT_LABELS, TARGET_HREF } from "@/lib/audit";
 import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
 import { prisma } from "@/lib/prisma";
-import { getUnpaidBookings, owedFor } from "@/lib/payouts";
+import { getUnpaidBookings, getUnpaidRides, owedFor, owedForRides } from "@/lib/payouts";
 import { getPlatformFeePercent } from "@/lib/settings";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -61,6 +61,8 @@ export default async function AdminOverviewPage() {
     activity,
     unpaidBookings,
     feePercent,
+    pendingDrivers,
+    unpaidRides,
   ] = await Promise.all([
     revenueBetween(startOfToday),
     revenueBetween(last30),
@@ -101,8 +103,10 @@ export default async function AdminOverviewPage() {
     }),
     getUnpaidBookings(),
     getPlatformFeePercent(),
+    prisma.driverProfile.count({ where: { status: "PENDING" } }),
+    getUnpaidRides(),
   ]);
-  const owedToHosts = owedFor(unpaidBookings, feePercent).host;
+  const owedToHosts = owedFor(unpaidBookings, feePercent).host + owedForRides(unpaidRides).host;
 
   // Bucket the last 30 days of payments by calendar day for the chart.
   const days = Array.from({ length: 30 }, (_, i) => ({ date: new Date(chartStart.getTime() + i * DAY), amount: 0 }));
@@ -121,7 +125,8 @@ export default async function AdminOverviewPage() {
     { label: "Open claims", detail: "Damage and incident reports", count: openClaims, href: "/dashboard/admin/claims?status=OPEN", icon: "alert" },
     { label: "Failed payments", detail: "Checkout attempts that failed", count: failedPayments, href: "/dashboard/admin/payments?status=FAILED", icon: "card" },
     { label: "Rides without a driver", detail: "Requested, not yet assigned", count: openRides, href: "/dashboard/admin/rides?status=REQUESTED", icon: "route" },
-    { label: "Host payouts due", detail: `${money(owedToHosts)} owed to hosts`, count: unpaidBookings.length, href: "/dashboard/admin/payouts", icon: "wallet" },
+    { label: "Driver applications", detail: "New drivers waiting for review", count: pendingDrivers, href: "/dashboard/admin/drivers?status=PENDING", icon: "route" },
+    { label: "Payouts due", detail: `${money(owedToHosts)} owed to hosts and drivers`, count: unpaidBookings.length + unpaidRides.length, href: "/dashboard/admin/payouts", icon: "wallet" },
     { label: "Pending bookings", detail: "Awaiting payment or confirmation", count: pendingBookings, href: "/dashboard/admin/bookings?status=PENDING", icon: "calendar" },
   ];
   const attention = queue.filter((item) => item.count > 0);
@@ -169,7 +174,7 @@ export default async function AdminOverviewPage() {
               <p className="mt-0.5 font-semibold tabular-nums">{money(rideRevenue._sum.totalPrice)}</p>
             </div>
             <div className="px-4">
-              <p className="text-xs text-slate-500">Owed to hosts</p>
+              <p className="text-xs text-slate-500">Owed to hosts &amp; drivers</p>
               <p className="mt-0.5 font-semibold tabular-nums">{money(owedToHosts)}</p>
             </div>
             <div className="pl-4">

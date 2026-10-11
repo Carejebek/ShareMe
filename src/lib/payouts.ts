@@ -41,3 +41,41 @@ export function owedFor(bookings: { netPaid: number }[], feePercent: number) {
     { gross: 0, fee: 0, host: 0 }
   );
 }
+
+// A driver is owed their share of a ride once the card charge went through and it isn't in a payout yet.
+// The fee was locked in when the fare was captured.
+export const UNPAID_RIDES_WHERE = {
+  status: "COMPLETED",
+  paymentStatus: "CAPTURED",
+  payoutId: null,
+  driverId: { not: null },
+} satisfies Prisma.RideWhereInput;
+
+export async function getUnpaidRides(driverId?: string) {
+  return prisma.ride.findMany({
+    where: { ...UNPAID_RIDES_WHERE, ...(driverId ? { driverId } : {}) },
+    select: {
+      id: true,
+      completedAt: true,
+      createdAt: true,
+      pickupAddress: true,
+      dropoffAddress: true,
+      totalPrice: true,
+      platformFee: true,
+      driverEarnings: true,
+      driver: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { completedAt: "asc" },
+  });
+}
+
+export function owedForRides(rides: { totalPrice: unknown; platformFee: unknown; driverEarnings: unknown }[]) {
+  return rides.reduce(
+    (totals, r) => ({
+      gross: totals.gross + Number(r.totalPrice),
+      fee: totals.fee + Number(r.platformFee ?? 0),
+      host: totals.host + Number(r.driverEarnings ?? 0),
+    }),
+    { gross: 0, fee: 0, host: 0 }
+  );
+}

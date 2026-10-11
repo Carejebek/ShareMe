@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AdminActionButton, AdminSelectAction } from "@/components/admin/AdminActions";
 import AdminForm from "@/components/admin/AdminForm";
 import AuditHistory from "@/components/admin/AuditHistory";
+import DriverReview from "@/components/admin/DriverReview";
 import VerificationReview from "@/components/admin/VerificationReview";
 import { Badge, Callout, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { dateTime, money, requireAdmin, shortDate } from "@/lib/admin";
@@ -36,6 +37,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       licenseImagePath: true,
       verificationNote: true,
       verifiedAt: true,
+      driverProfile: true,
       payouts: { select: { id: true, amount: true, method: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 20 },
       listings: {
         select: { id: true, year: true, make: true, model: true, pricePerDay: true, isActive: true, approvalStatus: true },
@@ -152,6 +154,12 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       <Card title="Driver's licence">
         <VerificationReview user={user} />
       </Card>
+
+      {user.driverProfile && (
+        <Card title="Driver application">
+          <DriverReview user={user} profile={user.driverProfile} />
+        </Card>
+      )}
 
       {user.listings.length > 0 && (
         <Card title="Vehicles">

@@ -4,7 +4,17 @@ import { Badge, Callout, EmptyState, FilterBar, PageHeader, Pagination, StatCard
 import { ADMIN_PAGE_SIZE, dateTime, money, oneOf, pageNumber, param, requireAdmin, type SearchParams } from "@/lib/admin";
 import { STATUS_LABEL, formatDistance, mapsDirectionsUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { activeDriverWhere } from "@/lib/drivers";
 import { FINAL_STATUSES } from "@/lib/rides";
+
+const PAYMENT_LABEL: Record<string, string> = {
+  UNPAID: "Not paid",
+  CASH: "Paid (cash)",
+  AUTHORIZED: "Card on hold",
+  CAPTURED: "Charged",
+  RELEASED: "Hold released",
+  FAILED: "Charge failed",
+};
 
 const STATUSES = ["REQUESTED", "ACCEPTED", "EN_ROUTE", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
 
@@ -16,7 +26,8 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
   const page = pageNumber(params);
 
   const where: Prisma.RideWhereInput = {
-    ...(status ? { status } : {}),
+    // Unfinished checkouts aren't real rides yet.
+    ...(status ? { status } : { status: { not: "AWAITING_PAYMENT" } }),
     ...(q
       ? {
           OR: [
@@ -42,9 +53,13 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
       take: ADMIN_PAGE_SIZE,
     }),
     prisma.ride.count({ where }),
-    prisma.user.findMany({ where: { role: "DRIVER" }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: activeDriverWhere(), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.ride.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.ride.aggregate({ where: { status: "COMPLETED", paid: false }, _sum: { totalPrice: true }, _count: { _all: true } }),
+    prisma.ride.aggregate({
+      where: { status: "COMPLETED", paymentStatus: { in: ["CAPTURED"] } },
+      _sum: { totalPrice: true, platformFee: true },
+      _count: { _all: true },
+    }),
   ]);
 
   const count = (s: string) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
@@ -55,7 +70,7 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
     <div className="space-y-6">
       <PageHeader
         title="Rides"
-        description="Chauffeur rides booked through the app. Assign drivers, cancel rides and record cash/card payments."
+        description="Rides booked through the app. The rider's card is held when they book and charged when the trip is completed."
         actions={
           <TextLink href="/dashboard/dispatch">Open live dispatch board →</TextLink>
         }
@@ -65,12 +80,17 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
         <StatCard tone={count("REQUESTED") ? "warn" : "light"} label="Waiting for a driver" value={count("REQUESTED")} href="?status=REQUESTED" />
         <StatCard label="Active now" value={active} />
         <StatCard label="Completed" value={count("COMPLETED")} href="?status=COMPLETED" />
-        <StatCard label="Completed but unpaid" value={money(unpaid._sum.totalPrice)} hint={`${unpaid._count._all} rides`} />
+        <StatCard
+          label="Charged to riders"
+          value={money(unpaid._sum.totalPrice)}
+          hint={`${unpaid._count._all} rides · ${money(unpaid._sum.platformFee)} platform fees`}
+        />
       </div>
 
       {drivers.length === 0 && (
-        <Callout tone="warn" title="No drivers yet">
-          Make a user a driver from their profile on the Users page to start assigning rides.
+        <Callout tone="warn" title="No approved drivers yet">
+          People apply to drive at <TextLink href="/drive">/drive</TextLink>. Review applications on the{" "}
+          <TextLink href="/dashboard/admin/drivers">Drivers</TextLink> page.
         </Callout>
       )}
 
@@ -130,18 +150,25 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
                 </Td>
                 <Td>
                   <span className="font-semibold">{money(ride.totalPrice)}</span>
-                  {ride.status === "COMPLETED" && (
-                    <p className={`text-xs font-medium ${ride.paid ? "text-emerald-700" : "text-amber-700"}`}>
-                      {ride.paid ? "Paid" : "Unpaid"}
-                    </p>
-                  )}
+                  <p
+                    className={`text-xs font-medium ${
+                      ride.paymentStatus === "CAPTURED" || ride.paid
+                        ? "text-emerald-700"
+                        : ride.paymentStatus === "FAILED"
+                          ? "text-rose-600"
+                          : "text-slate-500"
+                    }`}
+                  >
+                    {PAYMENT_LABEL[ride.paymentStatus === "UNPAID" && ride.paid ? "CASH" : ride.paymentStatus]}
+                  </p>
+                  {ride.cancelReason && <p className="text-xs text-slate-400">{ride.cancelReason}</p>}
                 </Td>
                 <Td>
                   <Badge value={ride.status} label={STATUS_LABEL[ride.status]} />
                 </Td>
                 <Td>
                   <div className="flex flex-wrap gap-2">
-                    {ride.status === "COMPLETED" && !ride.paid && (
+                    {ride.status === "COMPLETED" && !ride.paid && ride.paymentStatus === "UNPAID" && (
                       <AdminActionButton
                         endpoint={`/api/rides/${ride.id}`}
                         body={{ action: "markPaid" }}
