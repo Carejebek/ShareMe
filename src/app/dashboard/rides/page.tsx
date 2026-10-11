@@ -17,8 +17,21 @@ interface MyRide {
   currency: string;
   status: string;
   paid: boolean;
-  driver: { name: string; phone: string | null } | null;
+  paymentStatus: string;
+  cancelReason: string | null;
+  driver: {
+    name: string;
+    phone: string | null;
+    driverProfile: { vehicleMake: string; vehicleModel: string; vehicleYear: number; vehicleColor: string; vehiclePlate: string } | null;
+  } | null;
 }
+
+const PAYMENT_NOTE: Record<string, string> = {
+  AUTHORIZED: 'Card on hold, charged when the trip ends',
+  CAPTURED: 'Charged to your card',
+  RELEASED: 'Card hold released, not charged',
+  FAILED: 'Card charge failed, we will contact you'
+};
 
 function MyRides() {
   const search = useSearchParams();
@@ -36,6 +49,13 @@ function MyRides() {
     }
     setLoading(false);
   }, []);
+
+  // Back from a bank check (3-D Secure): confirm the card hold, then show the ride.
+  const returningRide = search.get('ride');
+  useEffect(() => {
+    if (!returningRide) return;
+    fetch(`/api/rides/${returningRide}/payment`, { method: 'POST' }).finally(load);
+  }, [returningRide, load]);
 
   useEffect(() => {
     load();
@@ -95,15 +115,28 @@ function MyRides() {
                 <span className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLE[r.status] || ''}`}>
                   {STATUS_LABEL[r.status] || r.status}
                 </span>
-                {r.status === 'COMPLETED' && (
-                  <p className="mt-1 text-xs text-neutral-500">{r.paid ? 'Paid' : 'Payment due to driver'}</p>
+                {PAYMENT_NOTE[r.paymentStatus] ? (
+                  <p className="mt-1 text-xs text-neutral-500">{PAYMENT_NOTE[r.paymentStatus]}</p>
+                ) : (
+                  r.status === 'COMPLETED' && <p className="mt-1 text-xs text-neutral-500">{r.paid ? 'Paid' : 'Payment due to driver'}</p>
                 )}
+                {r.status === 'CANCELLED' && r.cancelReason && <p className="mt-1 text-xs text-neutral-500">{r.cancelReason}</p>}
               </div>
             </div>
 
             {r.driver && r.status !== 'CANCELLED' && (
               <p className="mt-3 border-t pt-3 text-sm text-neutral-700">
                 Driver: <span className="font-bold">{r.driver.name}</span>
+                {r.driver.driverProfile && (
+                  <>
+                    {' · '}
+                    {r.driver.driverProfile.vehicleColor} {r.driver.driverProfile.vehicleMake} {r.driver.driverProfile.vehicleModel}
+                    {' · Plate '}
+                    <span className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-xs font-bold text-white">
+                      {r.driver.driverProfile.vehiclePlate}
+                    </span>
+                  </>
+                )}
                 {r.driver.phone && (
                   <>
                     {' · '}

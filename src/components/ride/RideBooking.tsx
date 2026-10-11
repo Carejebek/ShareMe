@@ -4,8 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import AddressInput, { PickedAddress } from './AddressInput';
+import RidePayment from './RidePayment';
 import { formatDistance, formatMoney } from '@/lib/format';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 interface Quote {
   distanceMeters: number;
@@ -50,6 +55,8 @@ export default function RideBooking({
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
+  // Set once the ride is created and is waiting for the card hold.
+  const [checkout, setCheckout] = useState<{ rideId: string; clientSecret: string; amount: number; currency: string } | null>(null);
 
   const minDateTime = useMemo(() => localInputValue(new Date(Date.now() + 30 * 60_000)), []);
 
@@ -118,7 +125,7 @@ export default function RideBooking({
         setError(data.error || 'Could not book the ride.');
         return;
       }
-      router.push('/dashboard/rides?booked=1');
+      setCheckout({ rideId: data.id, clientSecret: data.clientSecret, amount: data.totalPrice, currency: data.currency });
     } catch {
       setError('Could not book the ride. Please try again.');
     } finally {
@@ -130,7 +137,8 @@ export default function RideBooking({
 
   return (
     <div className="grid gap-8 lg:grid-cols-5">
-      <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm lg:col-span-3">
+      {/* Locked while paying: the price was fixed when the ride was created. */}
+      <fieldset disabled={!!checkout} className="min-w-0 space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm disabled:opacity-60 lg:col-span-3">
         <AddressInput label="Pickup address" placeholder="Where should we pick you up?" value={pickup} onChange={setPickup} allowCurrentLocation />
         <AddressInput label="Drop-off address" placeholder="Where are you going?" value={dropoff} onChange={setDropoff} />
 
@@ -185,7 +193,7 @@ export default function RideBooking({
             className="w-full rounded-xl border border-neutral-300 px-4 py-3"
           />
         </div>
-      </div>
+      </fieldset>
 
       <aside className="lg:col-span-2">
         <div className="sticky top-28 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -244,14 +252,31 @@ export default function RideBooking({
 
           {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-          {signedIn ? (
+          {checkout ? (
+            <Elements stripe={stripePromise} options={{ clientSecret: checkout.clientSecret, appearance: { theme: 'stripe' } }}>
+              <RidePayment
+                rideId={checkout.rideId}
+                amount={checkout.amount}
+                currency={checkout.currency}
+                onCancel={() => {
+                  // Drop the unpaid ride so it doesn't count against the rider's active rides.
+                  fetch(`/api/rides/${checkout.rideId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cancel' })
+                  });
+                  setCheckout(null);
+                }}
+              />
+            </Elements>
+          ) : signedIn ? (
             <button
               type="button"
               onClick={book}
               disabled={!quote || submitting}
               className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#e62e1f] to-[#ff5a1f] px-6 py-4 text-lg font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {submitting ? 'Booking…' : 'Book this ride'}
+              {submitting ? 'Preparing payment…' : 'Continue to payment'}
             </button>
           ) : (
             <Link
@@ -261,9 +286,11 @@ export default function RideBooking({
               Log in to book
             </Link>
           )}
-          <p className="mt-3 text-center text-xs text-neutral-500">
-            You pay the driver at the end of the trip.
-          </p>
+          {!checkout && (
+            <p className="mt-3 text-center text-xs text-neutral-500">
+              Pay securely by card. You&apos;re only charged when the trip is completed.
+            </p>
+          )}
         </div>
       </aside>
     </div>
