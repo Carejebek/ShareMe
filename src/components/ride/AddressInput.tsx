@@ -19,6 +19,8 @@ interface Props {
   placeholder: string;
   value: PickedAddress | null;
   onChange: (value: PickedAddress | null) => void;
+  // Shows a "Use my current location" button (used for the pickup address).
+  allowCurrentLocation?: boolean;
 }
 
 function newSession(): string {
@@ -27,13 +29,14 @@ function newSession(): string {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export default function AddressInput({ label, placeholder, value, onChange }: Props) {
+export default function AddressInput({ label, placeholder, value, onChange, allowCurrentLocation }: Props) {
   const [text, setText] = useState(value?.address ?? '');
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(-1);
+  const [locating, setLocating] = useState(false);
   const session = useRef(newSession());
   const box = useRef<HTMLDivElement>(null);
   const latest = useRef(0);
@@ -87,6 +90,42 @@ export default function AddressInput({ label, placeholder, value, onChange }: Pr
     setOpen(false);
     session.current = newSession();
     onChange({ placeId: s.placeId, address: s.description });
+  }
+
+  function locateMe() {
+    if (!navigator.geolocation) {
+      setError('Your browser cannot share your location. Please type your address.');
+      return;
+    }
+    setLocating(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(`/api/maps/reverse?lat=${coords.latitude}&lng=${coords.longitude}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not find your address.');
+          latest.current++; // ignore any typed search still in flight
+          setText(data.address);
+          setItems([]);
+          setOpen(false);
+          onChange({ placeId: data.placeId, address: data.address });
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        setLocating(false);
+        setError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location access was blocked. Allow it in your browser settings, or type your address.'
+            : 'Could not get your location. Please type your address.'
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 }
+    );
   }
 
   return (
@@ -158,6 +197,20 @@ export default function AddressInput({ label, placeholder, value, onChange }: Pr
           {/* Google requires this attribution when showing Places results without a Google map. */}
           <li className="border-t border-neutral-100 px-4 py-2 text-right text-[11px] text-neutral-400">powered by Google</li>
         </ul>
+      )}
+      {allowCurrentLocation && (
+        <button
+          type="button"
+          onClick={locateMe}
+          disabled={locating}
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-[#e62e1f] hover:underline disabled:opacity-50"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+          </svg>
+          {locating ? 'Finding you…' : 'Use my current location'}
+        </button>
       )}
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
