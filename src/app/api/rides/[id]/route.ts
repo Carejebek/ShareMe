@@ -93,7 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       let warning = '';
       if (next === 'COMPLETED' && ride.paymentStatus === 'AUTHORIZED') {
         const capture = await captureRideFare(id);
-        if (!capture.ok) warning = `The trip is complete but the card charge failed: ${capture.error}. An admin will follow up.`;
+        if (!capture.ok) warning = `The trip is complete but the card charge failed (${capture.error.replace(/\.$/, '')}). An admin will follow up.`;
       }
       notifyRideStatus(id, next);
       return NextResponse.json({ ...serializeRide((await prisma.ride.findUnique({ where: { id } }))!), warning });
