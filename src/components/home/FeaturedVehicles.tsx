@@ -1,6 +1,7 @@
 import VehicleCard from "@/components/cards/VehicleCard";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
+import { toVehicleCard } from "@/lib/vehicleCards";
 
 export default async function FeaturedVehicles() {
   const listings = await prisma.listing.findMany({
@@ -18,26 +19,7 @@ export default async function FeaturedVehicles() {
     },
   });
 
-  const vehicles = listings.map((listing) => {
-    const averageRating =
-      listing.reviews.length > 0
-        ? listing.reviews.reduce((total, review) => total + review.rating, 0) /
-          listing.reviews.length
-        : 5;
-
-    return {
-      id: listing.id,
-      name: `${listing.make} ${listing.model}`,
-      year: listing.year,
-      city: `${listing.city}, ${listing.state}`,
-      price: Number(listing.pricePerDay),
-      rating: Number(averageRating.toFixed(1)),
-      reviews: listing.reviews.length,
-      image:
-        listing.imageUrls[0] ||
-        "/images/shareme-hero.jpg",
-    };
-  });
+  const vehicles = listings.map(toVehicleCard);
 
   return (
     <section id="featured-cars" className="bg-white py-24">
@@ -58,7 +40,7 @@ export default async function FeaturedVehicles() {
           </div>
 
           <a
-            href="#featured-cars"
+            href="/cars"
             className="font-black text-[#e62e1f] transition hover:text-[#ff5a1f]"
           >
             View all vehicles →

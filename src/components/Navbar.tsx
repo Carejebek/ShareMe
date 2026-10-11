@@ -22,10 +22,10 @@ export default function Navbar() {
 
   const navigation = [
     { label: "Book a Ride", href: "/ride" },
-    { label: "Browse Cars", href: "/" },
+    { label: "Browse Cars", href: "/cars" },
     { label: "Become a Host", href: "/register" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Help", href: "#support" },
+    { label: "How It Works", href: "/#how-it-works" },
+    { label: "Help", href: "/support" },
   ];
 
   // The admin portal has its own top bar and sidebar.

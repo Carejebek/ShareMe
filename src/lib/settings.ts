@@ -13,3 +13,12 @@ export function splitEarnings(netPaid: number, feePercent: number) {
   const platformFee = Math.round(netPaid * feePercent) / 100;
   return { platformFee, hostEarnings: Math.round((netPaid - platformFee) * 100) / 100 };
 }
+
+export type SupportContact = { email: string; phone: string; hours: string };
+
+// Contact details shown on the public Support page, set in Admin → Settings.
+export async function getSupportContact(): Promise<SupportContact> {
+  const rows = await prisma.setting.findMany({ where: { key: { in: ["support.email", "support.phone", "support.hours"] } } });
+  const value = (key: string) => rows.find((r) => r.key === key)?.value ?? "";
+  return { email: value("support.email"), phone: value("support.phone"), hours: value("support.hours") };
+}

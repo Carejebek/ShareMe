@@ -27,7 +27,7 @@ export default function BrowseBrands() {
           {brands.map((brand) => (
             <a
               key={brand}
-              href={`/?make=${encodeURIComponent(brand)}#featured-cars`}
+              href={`/cars?make=${encodeURIComponent(brand)}`}
               className="flex min-h-28 items-center justify-center rounded-2xl border border-neutral-200 bg-white px-4 text-center text-base font-black text-neutral-900 shadow-sm transition hover:-translate-y-1 hover:border-[#ff5a1f] hover:text-[#e62e1f] hover:shadow-xl"
             >
               {brand}

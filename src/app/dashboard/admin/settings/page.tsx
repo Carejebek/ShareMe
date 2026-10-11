@@ -1,11 +1,11 @@
 import AdminForm from "@/components/admin/AdminForm";
 import { Card, PageHeader } from "@/components/admin/ui";
 import { money, requireAdmin } from "@/lib/admin";
-import { getPlatformFeePercent, splitEarnings } from "@/lib/settings";
+import { getPlatformFeePercent, getSupportContact, splitEarnings } from "@/lib/settings";
 
 export default async function AdminSettingsPage() {
   await requireAdmin();
-  const feePercent = await getPlatformFeePercent();
+  const [feePercent, support] = await Promise.all([getPlatformFeePercent(), getSupportContact()]);
   const example = splitEarnings(100, feePercent);
 
   return (
@@ -24,6 +24,18 @@ export default async function AdminSettingsPage() {
           confirm="Change the platform fee to {platformFeePercent}%?"
           fields={[
             { name: "platformFeePercent", label: "Platform fee (%)", type: "number", step: "0.5", min: 0, max: 100, required: true, defaultValue: feePercent },
+          ]}
+        />
+      </Card>
+
+      <Card title="Support contact" description="Shown on the public Support page (/support)" className="max-w-2xl">
+        <AdminForm
+          endpoint="/api/admin/settings"
+          submitLabel="Save contact details"
+          fields={[
+            { name: "supportEmail", label: "Support email", defaultValue: support.email, placeholder: "support@jayxz.com" },
+            { name: "supportPhone", label: "Support phone", type: "tel", defaultValue: support.phone, placeholder: "+1 555 123 4567" },
+            { name: "supportHours", label: "Hours", defaultValue: support.hours, placeholder: "Mon–Fri, 9am–6pm ET" },
           ]}
         />
       </Card>

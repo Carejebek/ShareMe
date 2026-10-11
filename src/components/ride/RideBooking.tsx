@@ -28,12 +28,18 @@ function localInputValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export default function RideBooking() {
+export default function RideBooking({
+  initialPickup = null,
+  initialDropoff = null
+}: {
+  initialPickup?: PickedAddress | null;
+  initialDropoff?: PickedAddress | null;
+}) {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [pickup, setPickup] = useState<PickedAddress | null>(null);
-  const [dropoff, setDropoff] = useState<PickedAddress | null>(null);
+  const [pickup, setPickup] = useState<PickedAddress | null>(initialPickup);
+  const [dropoff, setDropoff] = useState<PickedAddress | null>(initialDropoff);
   const [when, setWhen] = useState<'now' | 'later'>('now');
   const [dateTime, setDateTime] = useState('');
   const [phone, setPhone] = useState('');

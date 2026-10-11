@@ -1,11 +1,12 @@
 const filters = [
-  { label: "All Cars", icon: "🚘", value: "" },
-  { label: "Luxury", icon: "◆", value: "Luxury" },
-  { label: "SUVs", icon: "🚙", value: "SUV" },
-  { label: "Sports", icon: "🏎", value: "Sports" },
-  { label: "Electric", icon: "⚡", value: "Electric" },
-  { label: "Vans", icon: "🚐", value: "Van" },
-  { label: "Trucks", icon: "🚚", value: "Truck" },
+  { label: "All Cars", icon: "🚘", href: "/cars" },
+  { label: "Economy", icon: "🚗", href: "/cars?category=ECONOMY" },
+  { label: "Luxury", icon: "◆", href: "/cars?category=LUXURY" },
+  { label: "SUVs", icon: "🚙", href: "/cars?category=SUV" },
+  { label: "Sports", icon: "🏎", href: "/cars?category=SPORTS" },
+  { label: "Electric", icon: "⚡", href: "/cars?fuel=ELECTRIC" },
+  { label: "Vans", icon: "🚐", href: "/cars?category=VAN" },
+  { label: "Trucks", icon: "🛻", href: "/cars?category=TRUCK" },
 ];
 
 export default function QuickFilters() {
@@ -16,11 +17,7 @@ export default function QuickFilters() {
           {filters.map((filter, index) => (
             <a
               key={filter.label}
-              href={
-                filter.value
-                  ? `/?category=${encodeURIComponent(filter.value)}#featured-cars`
-                  : "/#featured-cars"
-              }
+              href={filter.href}
               className={
                 index === 0
                   ? "flex items-center gap-3 rounded-full bg-neutral-950 px-6 py-3 font-bold text-white"

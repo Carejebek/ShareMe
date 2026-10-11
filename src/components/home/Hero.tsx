@@ -27,8 +27,8 @@ export default function Hero() {
           </h1>
 
           <p className="mt-8 text-xl text-gray-200 max-w-2xl">
-            Rent exceptional vehicles from trusted local owners anywhere,
-            anytime.
+            Rent a car from trusted local owners, or book a ride with the
+            price shown before you go.
           </p>
 
           <div className="mt-10 flex gap-4 flex-wrap">
@@ -50,9 +50,9 @@ export default function Hero() {
           </div>
 
           <div className="mt-12 flex gap-8 text-white text-sm flex-wrap">
-            <span>✓ Verified hosts</span>
-            <span>✓ Secure booking</span>
-            <span>✓ 24/7 Support</span>
+            <span>✓ Licence-verified hosts</span>
+            <span>✓ Secure card payments</span>
+            <span>✓ Upfront ride prices</span>
           </div>
 
         </div>

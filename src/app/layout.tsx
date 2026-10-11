@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import PwaRegister from "@/components/PwaRegister";
 import InstallPrompt from "@/components/InstallPrompt";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           {children}
+          <SiteFooter />
           <PwaRegister />
           <InstallPrompt />
         </Providers>
