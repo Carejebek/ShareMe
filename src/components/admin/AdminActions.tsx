@@ -35,6 +35,7 @@ export function AdminActionButton({
   disabled,
   redirectTo,
   promptFor,
+  successMessage,
 }: {
   endpoint: string;
   method?: Method;
@@ -47,10 +48,13 @@ export function AdminActionButton({
   redirectTo?: string;
   // Asks the admin for text (e.g. a rejection reason) and sends it as body[field].
   promptFor?: { field: string; message: string };
+  // Shown next to the button after it succeeds (for actions that don't visibly change the page).
+  successMessage?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
 
   async function run() {
     let payload = body;
@@ -67,8 +71,10 @@ export function AdminActionButton({
     }
     setBusy(true);
     setError("");
+    setDone(false);
     try {
       await send(endpoint, method, payload);
+      setDone(true);
       if (redirectTo) router.push(redirectTo);
       router.refresh();
     } catch (e) {
@@ -89,6 +95,7 @@ export function AdminActionButton({
         {busy ? busyLabel ?? "Working…" : label}
       </button>
       {error && <span className="mt-1 max-w-[220px] text-xs font-medium text-rose-600">{error}</span>}
+      {done && !error && successMessage && <span className="mt-1 max-w-[220px] text-xs font-medium text-emerald-700">{successMessage}</span>}
     </span>
   );
 }

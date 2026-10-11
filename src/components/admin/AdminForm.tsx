@@ -6,7 +6,7 @@ import { FormEvent, useState } from "react";
 export type AdminField = {
   name: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "select" | "checkbox";
+  type?: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "tel";
   options?: { value: string; label: string }[];
   defaultValue?: string | number | boolean;
   placeholder?: string;
@@ -128,6 +128,7 @@ export default function AdminForm({
                   step={field.step}
                   min={field.min}
                   max={field.max}
+                  autoComplete={field.type === "password" ? "new-password" : undefined}
                   className={input}
                 />
               )}

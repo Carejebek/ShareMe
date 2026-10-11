@@ -37,6 +37,8 @@ export const AUDIT_LABELS: Record<string, string> = {
   "claim.update": "Updated claim",
   "review.delete": "Deleted review",
   "setting.update": "Changed setting",
+  "integration.update": "Changed integration settings",
+  "integration.test": "Sent test SMS",
 };
 
 // Where to link each kind of record (deleted reviews and settings have no page).

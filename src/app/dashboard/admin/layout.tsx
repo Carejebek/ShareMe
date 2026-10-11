@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await requireAdmin();
 
-  const [pendingVehicles, pendingBookings, failedPayments, openRides, pendingVerifications, openClaims, unpaidBookings] =
+  const [pendingVehicles, pendingBookings, failedPayments, openRides, pendingVerifications, openClaims, unpaidBookings, failedSms] =
     await Promise.all([
       prisma.listing.count({ where: { approvalStatus: "PENDING" } }),
       prisma.booking.count({ where: { status: "PENDING" } }),
@@ -18,6 +18,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       prisma.user.count({ where: { verificationStatus: "PENDING" } }),
       prisma.claim.count({ where: { status: { in: ["OPEN", "IN_REVIEW"] } } }),
       prisma.booking.count({ where: UNPAID_EARNINGS_WHERE }),
+      prisma.smsMessage.count({
+        where: { status: { in: ["failed", "undelivered"] }, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      }),
     ]);
 
   const sections: NavSection[] = [
@@ -49,6 +52,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     {
       title: "System",
       items: [
+        { label: "Integrations", href: "/dashboard/admin/integrations", icon: "plug" },
+        { label: "SMS log", href: "/dashboard/admin/sms", icon: "message", count: failedSms, urgent: true },
         { label: "Audit log", href: "/dashboard/admin/audit", icon: "log" },
         { label: "Settings", href: "/dashboard/admin/settings", icon: "settings" },
       ],
