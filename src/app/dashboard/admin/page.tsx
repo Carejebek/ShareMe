@@ -115,7 +115,7 @@ export default async function AdminOverviewPage() {
   const totalUsers = usersByRole.reduce((sum, r) => sum + r._count._all, 0);
   const bookingCount = (status: string) => bookingsByStatus.find((b) => b.status === status)?._count._all ?? 0;
 
-  const attention: { label: string; detail: string; count: number; href: string; icon: IconName }[] = [
+  const queue: { label: string; detail: string; count: number; href: string; icon: IconName }[] = [
     { label: "Vehicles awaiting approval", detail: "New listings to review", count: pendingVehicles, href: "/dashboard/admin/vehicles?approval=PENDING", icon: "car" },
     { label: "Licences to verify", detail: "Hosts waiting on verification", count: pendingVerifications, href: "/dashboard/admin/verifications", icon: "shield" },
     { label: "Open claims", detail: "Damage and incident reports", count: openClaims, href: "/dashboard/admin/claims?status=OPEN", icon: "alert" },
@@ -123,7 +123,8 @@ export default async function AdminOverviewPage() {
     { label: "Rides without a driver", detail: "Requested, not yet assigned", count: openRides, href: "/dashboard/admin/rides?status=REQUESTED", icon: "route" },
     { label: "Host payouts due", detail: `${money(owedToHosts)} owed to hosts`, count: unpaidBookings.length, href: "/dashboard/admin/payouts", icon: "wallet" },
     { label: "Pending bookings", detail: "Awaiting payment or confirmation", count: pendingBookings, href: "/dashboard/admin/bookings?status=PENDING", icon: "calendar" },
-  ].filter((item) => item.count > 0);
+  ];
+  const attention = queue.filter((item) => item.count > 0);
 
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 18 ? "Good afternoon" : "Good evening";
 
