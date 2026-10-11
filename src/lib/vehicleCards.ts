@@ -1,5 +1,5 @@
 import type { Listing } from "@prisma/client";
-import { CATEGORY_LABEL } from "@/lib/carSearch";
+import { CATEGORY_LABEL } from "@/lib/categories";
 
 // Shapes a listing (with its review ratings) into the props VehicleCard expects.
 export function toVehicleCard(listing: Listing & { reviews: { rating: number }[] }) {

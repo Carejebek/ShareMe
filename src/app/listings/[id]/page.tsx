@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { CATEGORY_LABEL } from "@/lib/categories";
 import { canSeeListing, isListingLive } from "@/lib/listingVisibility";
 
 export default async function ListingDetailsPage({
@@ -155,6 +156,13 @@ export default async function ListingDetailsPage({
                     {listing.fuelType}
                   </p>
                 </div>
+
+                {listing.category && (
+                  <div className="rounded-2xl bg-neutral-50 p-5">
+                    <p className="text-sm text-neutral-500">Vehicle type</p>
+                    <p className="mt-1 font-black text-neutral-950">{CATEGORY_LABEL[listing.category]}</p>
+                  </div>
+                )}
               </div>
             </section>
 

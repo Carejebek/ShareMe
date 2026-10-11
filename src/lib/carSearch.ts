@@ -1,16 +1,8 @@
 import type { Prisma, VehicleCategory } from "@prisma/client";
+import { CATEGORIES } from "@/lib/categories";
 import { PUBLIC_LISTING_WHERE } from "@/lib/listingVisibility";
 
-export const CATEGORIES: { value: VehicleCategory; label: string; icon: string }[] = [
-  { value: "ECONOMY", label: "Economy", icon: "🚗" },
-  { value: "SEDAN", label: "Sedan", icon: "🚘" },
-  { value: "SUV", label: "SUV", icon: "🚙" },
-  { value: "LUXURY", label: "Luxury", icon: "◆" },
-  { value: "SPORTS", label: "Sports", icon: "🏎️" },
-  { value: "VAN", label: "Van", icon: "🚐" },
-  { value: "TRUCK", label: "Truck", icon: "🛻" },
-];
-export const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map((c) => [c.value, c.label])) as Record<VehicleCategory, string>;
+export { CATEGORIES, CATEGORY_LABEL } from "@/lib/categories";
 
 export const FUEL_TYPES = ["GASOLINE", "HYBRID", "ELECTRIC", "DIESEL"] as const;
 

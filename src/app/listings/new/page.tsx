@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function NewListingPage() {
     seats: 4,
     transmission: "AUTOMATIC",
     fuelType: "GASOLINE",
+    category: "",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -85,6 +87,7 @@ export default function NewListingPage() {
         },
         body: JSON.stringify({
           ...form,
+          category: form.category || null,
           imageUrls,
         }),
       });
@@ -257,6 +260,20 @@ export default function NewListingPage() {
                 }
                 className="rounded-xl border border-neutral-300 px-4 py-3"
               />
+
+              <select
+                value={form.category}
+                required
+                onChange={(e) => update("category", e.target.value)}
+                className="rounded-xl border border-neutral-300 px-4 py-3"
+              >
+                <option value="">Vehicle type…</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
 
               <select
                 value={form.transmission}

@@ -7,9 +7,10 @@ import { prisma } from "@/lib/prisma";
 const schema = z.union([
   z.object({ isActive: z.boolean() }),
   z.object({ adminNotes: z.string().max(5000) }),
+  z.object({ category: z.enum(["ECONOMY", "SEDAN", "SUV", "LUXURY", "SPORTS", "VAN", "TRUCK", "NONE"]) }),
 ]);
 
-// PATCH /api/admin/listings/:id  { isActive } | { adminNotes }
+// PATCH /api/admin/listings/:id  { isActive } | { adminNotes } | { category }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { admin, error } = await requireAdminApi();
   if (error) return error;
@@ -21,15 +22,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data = parsed.data;
   const result = await prisma.listing.updateMany({
     where: { id },
-    data: "isActive" in data ? { isActive: data.isActive } : { adminNotes: data.adminNotes.trim() || null },
+    data:
+      "isActive" in data
+        ? { isActive: data.isActive }
+        : "category" in data
+          ? { category: data.category === "NONE" ? null : data.category }
+          : { adminNotes: data.adminNotes.trim() || null },
   });
   if (result.count === 0) return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
 
   await logAudit(
     admin.id,
-    "isActive" in data ? (data.isActive ? "listing.activate" : "listing.deactivate") : "listing.notes",
+    "isActive" in data ? (data.isActive ? "listing.activate" : "listing.deactivate") : "category" in data ? "listing.category" : "listing.notes",
     "LISTING",
-    id
+    id,
+    "category" in data ? { category: data.category } : undefined
   );
   return NextResponse.json({ success: true });
 }

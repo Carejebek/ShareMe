@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import AddressInput, { type PickedAddress } from "@/components/ride/AddressInput";
-import { CATEGORIES } from "@/lib/carSearch";
+import { CATEGORIES } from "@/lib/categories";
 
 // The homepage search: rent a car (goes to /cars with filters) or book a ride (goes to /ride with both addresses filled in).
 export default function SearchBar() {

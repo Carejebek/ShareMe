@@ -85,6 +85,7 @@ const listingSchema = z.object({
   seats: z.number().int().min(1).max(15).default(4),
   transmission: z.enum(['AUTOMATIC', 'MANUAL']).default('AUTOMATIC'),
   fuelType: z.enum(['GASOLINE', 'HYBRID', 'ELECTRIC', 'DIESEL']).default('GASOLINE'),
+  category: z.enum(['ECONOMY', 'SEDAN', 'SUV', 'LUXURY', 'SPORTS', 'VAN', 'TRUCK']).nullable().default(null),
   imageUrls: z.array(z.string().url()).default([])
 });
 

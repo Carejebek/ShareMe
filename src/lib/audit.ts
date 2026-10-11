@@ -25,6 +25,7 @@ export const AUDIT_LABELS: Record<string, string> = {
   "listing.activate": "Reactivated vehicle",
   "listing.deactivate": "Deactivated vehicle",
   "listing.notes": "Updated vehicle notes",
+  "listing.category": "Changed vehicle type",
   "booking.status": "Changed booking status",
   "user.role": "Changed role",
   "user.suspend": "Suspended user",

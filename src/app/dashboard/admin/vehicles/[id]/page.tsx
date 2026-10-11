@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { AdminActionButton } from "@/components/admin/AdminActions";
+import { AdminActionButton, AdminSelectAction } from "@/components/admin/AdminActions";
 import AdminForm from "@/components/admin/AdminForm";
 import AuditHistory from "@/components/admin/AuditHistory";
 import { Badge, Callout, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { money, requireAdmin, shortDate } from "@/lib/admin";
+import { CATEGORIES } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminVehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -128,6 +129,14 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           <DetailRow label="Seats">{listing.seats}</DetailRow>
           <DetailRow label="Transmission">{listing.transmission}</DetailRow>
           <DetailRow label="Fuel">{listing.fuelType}</DetailRow>
+          <DetailRow label="Vehicle type">
+            <AdminSelectAction
+              endpoint={`/api/admin/listings/${listing.id}`}
+              field="category"
+              value={listing.category ?? "NONE"}
+              options={[{ value: "NONE", label: "Not set" }, ...CATEGORIES.map((c) => ({ value: c.value, label: c.label }))]}
+            />
+          </DetailRow>
           <DetailRow label="Listed">{shortDate(listing.createdAt)}</DetailRow>
           <DetailRow label="Public page">
             <TextLink href={`/listings/${listing.id}`}>{isLive ? "Open →" : "Preview (not public) →"}</TextLink>
