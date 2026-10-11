@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { notifyRideStatus } from '@/lib/notifications';
+import { getActiveDriver } from '@/lib/drivers';
+import { captureRideFare, releaseRideHold } from '@/lib/ridePayments';
 import { FINAL_STATUSES, getSessionUser, NEXT_STATUS, serializeRide } from '@/lib/rides';
 
 const actionSchema = z.discriminatedUnion('action', [
@@ -34,19 +36,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   switch (body.action) {
     case 'cancel': {
       if (FINAL_STATUSES.includes(ride.status)) return fail('This ride is already finished.', 409);
-      const riderCanCancel = isRider && (ride.status === 'REQUESTED' || ride.status === 'ACCEPTED');
+      const riderCanCancel = isRider && ['AWAITING_PAYMENT', 'REQUESTED', 'ACCEPTED'].includes(ride.status);
       if (!riderCanCancel && !isAdmin) return fail('You cannot cancel this ride.', 403);
-      const updated = await prisma.ride.update({ where: { id }, data: { status: 'CANCELLED' } });
-      notifyRideStatus(id, 'CANCELLED');
-      return NextResponse.json(serializeRide(updated));
+      const claimed = await prisma.ride.updateMany({
+        where: { id, status: ride.status },
+        data: { status: 'CANCELLED', cancelReason: isRider ? 'Cancelled by rider' : 'Cancelled by JayXZ' }
+      });
+      if (claimed.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
+      await releaseRideHold(ride);
+      if (ride.status !== 'AWAITING_PAYMENT') notifyRideStatus(id, 'CANCELLED');
+      return NextResponse.json(serializeRide((await prisma.ride.findUnique({ where: { id } }))!));
     }
 
     case 'accept': {
-      if (user.role !== 'DRIVER' && !isAdmin) return fail('Only drivers can accept rides.', 403);
+      const { driver, reason } = await getActiveDriver(user.id);
+      if (!driver) return fail(reason, 403);
+      if (isRider) return fail("You can't accept your own ride.", 409);
       // updateMany with conditions so two drivers cannot both take the same ride
       const result = await prisma.ride.updateMany({
         where: { id, status: 'REQUESTED', driverId: null },
-        data: { driverId: user.id, status: 'ACCEPTED' }
+        data: { driverId: user.id, status: 'ACCEPTED', acceptedAt: new Date() }
       });
       if (result.count === 0) return fail('This ride is no longer available.', 409);
       notifyRideStatus(id, 'ACCEPTED');
@@ -58,28 +67,43 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (ride.status !== 'REQUESTED' && ride.status !== 'ACCEPTED') {
         return fail('A driver can only be assigned before the trip starts.', 409);
       }
-      const driver = await prisma.user.findUnique({ where: { id: body.driverId } });
-      if (!driver || driver.role !== 'DRIVER') return fail('That user is not a driver.', 400);
-      const updated = await prisma.ride.update({
-        where: { id },
-        data: { driverId: driver.id, status: 'ACCEPTED' }
+      const { driver, reason } = await getActiveDriver(body.driverId);
+      if (!driver) return fail(`That driver can't take rides: ${reason}`, 400);
+      if (driver.id === ride.riderId) return fail("A rider can't drive their own ride.", 400);
+      const result = await prisma.ride.updateMany({
+        where: { id, status: { in: ['REQUESTED', 'ACCEPTED'] } },
+        data: { driverId: driver.id, status: 'ACCEPTED', acceptedAt: new Date() }
       });
+      if (result.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
       if (driver.id !== ride.driverId) notifyRideStatus(id, 'ACCEPTED');
-      return NextResponse.json(serializeRide(updated));
+      return NextResponse.json(serializeRide((await prisma.ride.findUnique({ where: { id } }))!));
     }
 
     case 'advance': {
       if (!isAssignedDriver && !isAdmin) return fail('Only the assigned driver can update this ride.', 403);
       const next = NEXT_STATUS[ride.status];
       if (!next) return fail('This ride cannot be advanced.', 409);
-      const updated = await prisma.ride.update({ where: { id }, data: { status: next } });
+      const result = await prisma.ride.updateMany({
+        where: { id, status: ride.status },
+        data: { status: next, ...(next === 'COMPLETED' ? { completedAt: new Date() } : {}) }
+      });
+      if (result.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
+
+      // Trip finished: charge the card hold.
+      let warning = '';
+      if (next === 'COMPLETED' && ride.paymentStatus === 'AUTHORIZED') {
+        const capture = await captureRideFare(id);
+        if (!capture.ok) warning = `The trip is complete but the card charge failed: ${capture.error}. An admin will follow up.`;
+      }
       notifyRideStatus(id, next);
-      return NextResponse.json(serializeRide(updated));
+      return NextResponse.json({ ...serializeRide((await prisma.ride.findUnique({ where: { id } }))!), warning });
     }
 
     case 'markPaid': {
+      // Only for older rides booked before card payments, which riders paid in cash.
       if (!isAssignedDriver && !isAdmin) return fail('Only the driver or an admin can mark a ride paid.', 403);
       if (ride.status !== 'COMPLETED') return fail('Only completed rides can be marked paid.', 409);
+      if (ride.paymentStatus !== 'UNPAID') return fail('This ride is paid by card.', 409);
       const updated = await prisma.ride.update({ where: { id }, data: { paid: true } });
       return NextResponse.json(serializeRide(updated));
     }

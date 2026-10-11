@@ -14,9 +14,14 @@ const schema = z.discriminatedUnion("action", [
     decision: z.enum(["VERIFIED", "REJECTED"]),
     note: z.string().trim().max(1000).optional(),
   }),
+  z.object({
+    action: z.literal("driver"),
+    decision: z.enum(["APPROVED", "REJECTED"]),
+    note: z.string().trim().max(1000).optional(),
+  }),
 ]);
 
-// PATCH /api/admin/users/:id  { action: "role" | "suspend" | "unsuspend" | "notes" | "verify", ... }
+// PATCH /api/admin/users/:id  { action: "role" | "suspend" | "unsuspend" | "notes" | "verify" | "driver", ... }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { admin, error } = await requireAdminApi();
   if (error) return error;
@@ -32,7 +37,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { role: true, suspendedAt: true, verificationStatus: true, licenseImagePath: true },
+    select: {
+      role: true,
+      suspendedAt: true,
+      verificationStatus: true,
+      licenseImagePath: true,
+      driverProfile: { select: { status: true, insuranceExpiresAt: true } },
+    },
   });
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
@@ -52,6 +63,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await prisma.user.update({ where: { id }, data: { suspendedAt: new Date(), suspensionReason: body.reason } });
       await logAudit(admin.id, "user.suspend", "USER", id, { reason: body.reason });
       break;
+
+    case "driver": {
+      const profile = user.driverProfile;
+      if (!profile) return NextResponse.json({ error: "This user hasn't applied to drive." }, { status: 404 });
+      if (body.decision === "APPROVED") {
+        if (user.verificationStatus !== "VERIFIED") {
+          return NextResponse.json({ error: "Verify their driver's licence first." }, { status: 409 });
+        }
+        if (profile.insuranceExpiresAt < new Date()) {
+          return NextResponse.json({ error: "Their insurance has expired." }, { status: 409 });
+        }
+      } else if (!body.note) {
+        return NextResponse.json({ error: "Please give a reason. The driver will see it." }, { status: 400 });
+      }
+      await prisma.$transaction([
+        prisma.driverProfile.update({
+          where: { userId: id },
+          data: { status: body.decision, reviewNote: body.decision === "REJECTED" ? body.note : null, reviewedAt: new Date() },
+        }),
+        // Renters become drivers so their navigation shows Dispatch. Hosts and admins keep their role.
+        ...(body.decision === "APPROVED" && user.role === "RENTER" ? [prisma.user.update({ where: { id }, data: { role: "DRIVER" } })] : []),
+      ]);
+      await logAudit(admin.id, body.decision === "APPROVED" ? "driver.approve" : "driver.reject", "USER", id, {
+        from: profile.status,
+        note: body.note || null,
+      });
+      break;
+    }
 
     case "unsuspend":
       await prisma.user.update({ where: { id }, data: { suspendedAt: null, suspensionReason: null } });

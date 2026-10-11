@@ -42,11 +42,14 @@ export const SECRET_KEYS = ["twilio.authToken", "maps.apiKey"] as const;
 export const SMS_EVENTS = {
   "booking.confirmed": "Booking confirmed (renter and host)",
   "booking.cancelled": "Booking cancelled (renter and host)",
+  "ride.requested": "New ride request (approved drivers)",
   "ride.accepted": "Driver assigned to a ride (rider)",
   "ride.en_route": "Driver on the way (rider)",
   "ride.in_progress": "Trip started (rider)",
   "ride.completed": "Ride completed (rider)",
   "ride.cancelled": "Ride cancelled (rider and driver)",
+  "ride.expired": "No driver found, hold released (rider)",
+  "ride.reminder": "Scheduled ride reminder (rider and driver)",
 } as const;
 export type SmsEvent = keyof typeof SMS_EVENTS;
 

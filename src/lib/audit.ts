@@ -33,6 +33,8 @@ export const AUDIT_LABELS: Record<string, string> = {
   "user.notes": "Updated user notes",
   "user.verify": "Verified licence",
   "user.verify_reject": "Rejected licence",
+  "driver.approve": "Approved driver",
+  "driver.reject": "Rejected driver",
   "payment.refund": "Issued refund",
   "payout.create": "Recorded host payout",
   "claim.update": "Updated claim",

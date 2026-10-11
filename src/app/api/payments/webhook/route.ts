@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { notifyBookingStatus } from '@/lib/notifications';
+import { markRideAuthorized } from '@/lib/ridePayments';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 
@@ -38,6 +39,15 @@ export async function POST(req: NextRequest) {
         data: { status: 'CONFIRMED' }
       });
       if (confirmed.count > 0) notifyBookingStatus(payment.bookingId, 'CONFIRMED');
+    }
+  }
+
+  // Ride card holds (manual capture): the hold succeeded, so show the ride to drivers.
+  // The browser normally confirms this first; this covers riders who close the page too early.
+  if (event.type === 'payment_intent.amount_capturable_updated') {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    if (intent.metadata?.rideId && intent.status === 'requires_capture') {
+      await markRideAuthorized(intent.metadata.rideId, intent.id);
     }
   }
 

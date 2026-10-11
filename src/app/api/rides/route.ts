@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { computeRoute, isValidPlaceId, MapsError } from '@/lib/maps';
 import { calculateFare } from '@/lib/pricing';
+import { createRideHold, MAX_SCHEDULE_DAYS } from '@/lib/ridePayments';
+import { runRideJobsSoon } from '@/lib/rideJobs';
 import { getSessionUser, serializeRide } from '@/lib/rides';
 
 const MIN_LEAD_MINUTES = 15; // scheduled rides must be at least this far ahead
@@ -23,9 +25,19 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 });
 
+  runRideJobsSoon();
   const rides = await prisma.ride.findMany({
-    where: { riderId: user.id },
-    include: { driver: { select: { name: true, phone: true } } },
+    // Rides whose checkout was never finished aren't shown.
+    where: { riderId: user.id, status: { not: 'AWAITING_PAYMENT' } },
+    include: {
+      driver: {
+        select: {
+          name: true,
+          phone: true,
+          driverProfile: { select: { vehicleMake: true, vehicleModel: true, vehicleYear: true, vehicleColor: true, vehiclePlate: true } }
+        }
+      }
+    },
     orderBy: { createdAt: 'desc' },
     take: 100
   });
@@ -56,10 +68,16 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (scheduledAt.getTime() > Date.now() + MAX_SCHEDULE_DAYS * 24 * 60 * 60_000) {
+      return NextResponse.json(
+        { error: `Rides can be scheduled up to ${MAX_SCHEDULE_DAYS} days ahead.` },
+        { status: 400 }
+      );
+    }
   }
 
   const active = await prisma.ride.count({
-    where: { riderId: user.id, status: { in: ['REQUESTED', 'ACCEPTED', 'EN_ROUTE', 'IN_PROGRESS'] } }
+    where: { riderId: user.id, status: { in: ['AWAITING_PAYMENT', 'REQUESTED', 'ACCEPTED', 'EN_ROUTE', 'IN_PROGRESS'] } }
   });
   if (active >= MAX_ACTIVE_RIDES) {
     return NextResponse.json({ error: 'You have too many active rides. Cancel or finish one first.' }, { status: 429 });
@@ -84,10 +102,20 @@ export async function POST(req: NextRequest) {
         ratePerMinute: fare.ratePerMinute,
         minimumFare: fare.minimumFare,
         totalPrice: fare.total,
-        currency: fare.currency
+        currency: fare.currency,
+        // Drivers only see the ride once the card hold succeeds.
+        status: 'AWAITING_PAYMENT'
       }
     });
-    return NextResponse.json(serializeRide(ride), { status: 201 });
+
+    try {
+      const intent = await createRideHold(ride);
+      return NextResponse.json({ ...serializeRide(ride), clientSecret: intent.client_secret }, { status: 201 });
+    } catch (err) {
+      console.error('Creating ride card hold failed:', err);
+      await prisma.ride.update({ where: { id: ride.id }, data: { status: 'CANCELLED', cancelReason: 'Card payment unavailable' } });
+      return NextResponse.json({ error: 'Card payments are unavailable right now. Please try again later.' }, { status: 503 });
+    }
   } catch (err) {
     const status = err instanceof MapsError ? err.status : 500;
     const message = err instanceof MapsError ? err.message : 'Could not book the ride.';

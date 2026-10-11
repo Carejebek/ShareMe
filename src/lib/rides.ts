@@ -25,6 +25,8 @@ export function serializeRide(ride: Ride & Record<string, any>) {
     ...ride,
     ratePerMinute: Number(ride.ratePerMinute),
     minimumFare: Number(ride.minimumFare),
-    totalPrice: Number(ride.totalPrice)
+    totalPrice: Number(ride.totalPrice),
+    platformFee: ride.platformFee === null || ride.platformFee === undefined ? null : Number(ride.platformFee),
+    driverEarnings: ride.driverEarnings === null || ride.driverEarnings === undefined ? null : Number(ride.driverEarnings)
   };
 }

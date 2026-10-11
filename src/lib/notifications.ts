@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import type { BookingStatus, RideStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { activeDriverWhere, vehicleLabel } from "@/lib/drivers";
 import { sendSms } from "@/lib/sms";
 
 // SMS notifications for booking and ride changes. Each function is safe to call from any route handler:
@@ -53,7 +54,7 @@ export function notifyRideStatus(rideId: string, status: RideStatus) {
   after(async () => {
     const ride = await prisma.ride.findUnique({
       where: { id: rideId },
-      include: { driver: { select: { id: true, name: true, phone: true } } },
+      include: { driver: { select: { id: true, name: true, phone: true, driverProfile: true } } },
     });
     if (!ride) return;
     const pickup = ride.pickupAddress.split(",")[0];
@@ -61,10 +62,12 @@ export function notifyRideStatus(rideId: string, status: RideStatus) {
     const fare = `${ride.currency} ${Number(ride.totalPrice).toFixed(2)}`;
 
     const riderText = {
-      "ride.accepted": `${APP}: ${driver} will pick you up at ${pickup}.${ride.driver?.phone ? ` Driver: ${ride.driver.phone}.` : ""}`,
+      "ride.accepted": `${APP}: ${driver} will pick you up at ${pickup}${
+        ride.driver?.driverProfile ? ` in a ${vehicleLabel(ride.driver.driverProfile)}, plate ${ride.driver.driverProfile.vehiclePlate}` : ""
+      }.${ride.driver?.phone ? ` Driver: ${ride.driver.phone}.` : ""}`,
       "ride.en_route": `${APP}: ${driver} is on the way to ${pickup}.`,
       "ride.in_progress": `${APP}: Your trip has started. Enjoy the ride!`,
-      "ride.completed": `${APP}: You've arrived. Fare: ${fare}, paid to your driver. Thanks for riding!`,
+      "ride.completed": `${APP}: You've arrived. ${ride.paymentStatus === "CAPTURED" ? `${fare} was charged to your card` : `Fare: ${fare}`}. Thanks for riding!`,
       "ride.cancelled": `${APP}: Your ride from ${pickup} was cancelled.`,
     }[event];
 
@@ -76,4 +79,64 @@ export function notifyRideStatus(rideId: string, status: RideStatus) {
     }
     await Promise.all(sends);
   });
+}
+
+const appUrl = () => (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://jayxz.com").replace(/\/$/, "");
+
+// A paid ride request is waiting: text every driver who can take it.
+export function notifyNewRideRequest(rideId: string, { reminder = false } = {}) {
+  after(() => alertDrivers(rideId, reminder));
+}
+
+export async function alertDrivers(rideId: string, reminder = false) {
+  const ride = await prisma.ride.findUnique({ where: { id: rideId } });
+  if (!ride || ride.status !== "REQUESTED" || ride.driverId) return;
+  const drivers = await prisma.user.findMany({
+    where: { ...activeDriverWhere(), phone: { not: null }, id: { not: ride.riderId } },
+    select: { id: true, phone: true },
+    take: 100,
+  });
+  const when = ride.scheduledAt
+    ? ride.scheduledAt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    : "now";
+  const body = `${APP}: ${reminder ? "Still needs a driver" : "New ride"} (${when}): ${ride.pickupAddress.split(",")[0]} → ${
+    ride.dropoffAddress.split(",")[0]
+  }, ~${ride.durationMinutes} min, ${ride.currency} ${Number(ride.totalPrice).toFixed(2)}. Accept: ${appUrl()}/dashboard/dispatch`;
+  await Promise.all(drivers.map((d) => sendSms({ to: d.phone, body, event: "ride.requested", userId: d.id })));
+}
+
+export async function notifyRideExpired(rideId: string) {
+  const ride = await prisma.ride.findUnique({ where: { id: rideId } });
+  if (!ride) return;
+  await sendSms({
+    to: ride.riderPhone,
+    body: `${APP}: Sorry, no driver was available for your ride from ${ride.pickupAddress.split(",")[0]}. Your card hold has been released. Reply STOP to opt out.`,
+    event: "ride.expired",
+    userId: ride.riderId,
+  });
+}
+
+export async function sendRideReminder(rideId: string) {
+  const ride = await prisma.ride.findUnique({
+    where: { id: rideId },
+    include: { driver: { select: { id: true, name: true, phone: true, driverProfile: true } } },
+  });
+  if (!ride?.scheduledAt || !ride.driver) return;
+  const time = ride.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const pickup = ride.pickupAddress.split(",")[0];
+  const car = ride.driver.driverProfile ? ` (${vehicleLabel(ride.driver.driverProfile)}, ${ride.driver.driverProfile.vehiclePlate})` : "";
+  await Promise.all([
+    sendSms({
+      to: ride.riderPhone,
+      body: `${APP}: Reminder: ${ride.driver.name.split(" ")[0]}${car} picks you up at ${pickup} at ${time}. Reply STOP to opt out.`,
+      event: "ride.reminder",
+      userId: ride.riderId,
+    }),
+    sendSms({
+      to: ride.driver.phone,
+      body: `${APP}: Reminder: pickup at ${ride.pickupAddress} at ${time}. Rider: ${ride.riderPhone}.`,
+      event: "ride.reminder",
+      userId: ride.driver.id,
+    }),
+  ]);
 }
