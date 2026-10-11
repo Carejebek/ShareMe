@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       where: { twilioSid: sid, ...(final.includes(status) ? {} : { status: { notIn: final } }) },
       data: {
         status,
-        ...(params.ErrorCode ? { error: `Twilio error ${params.ErrorCode}` } : {})
+        error: params.ErrorCode ? `Twilio error ${params.ErrorCode}` : status === 'delivered' || status === 'read' ? null : undefined
       }
     });
   }

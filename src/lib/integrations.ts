@@ -34,7 +34,7 @@ export function decryptSecret(stored: string): string | null {
 // Shows enough of a secret to recognise it, never the whole thing.
 export function maskSecret(value: string | null | undefined): string {
   if (!value) return "";
-  return value.length <= 8 ? "••••" : `${value.slice(0, 4)}••••${value.slice(-4)}`;
+  return value.length <= 12 ? "••••" : `••••${value.slice(-4)}`;
 }
 
 export const SECRET_KEYS = ["twilio.authToken", "maps.apiKey"] as const;
