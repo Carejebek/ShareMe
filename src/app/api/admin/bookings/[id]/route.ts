@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
+import { notifyBookingStatus } from "@/lib/notifications";
 import { BOOKING_TRANSITIONS } from "@/lib/adminRules";
 import { prisma } from "@/lib/prisma";
 
@@ -35,5 +36,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   await logAudit(admin.id, "booking.status", "BOOKING", id, { from: booking.status, to: next });
+  notifyBookingStatus(id, next);
   return NextResponse.json({ success: true });
 }

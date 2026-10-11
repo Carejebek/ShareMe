@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { notifyBookingStatus } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
@@ -67,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id },
     data: { status }
   });
+  if (updated.status !== booking.status) notifyBookingStatus(id, updated.status);
 
   return NextResponse.json({ ...updated, totalPrice: Number(updated.totalPrice) });
 }

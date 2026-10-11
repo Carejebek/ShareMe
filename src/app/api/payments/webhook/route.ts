@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { notifyBookingStatus } from '@/lib/notifications';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 
@@ -31,10 +32,12 @@ export async function POST(req: NextRequest) {
         where: { id: payment.id },
         data: { status: 'SUCCEEDED' }
       });
-      await prisma.booking.update({
-        where: { id: payment.bookingId },
+      // Stripe can deliver the same event more than once; only text people the first time.
+      const confirmed = await prisma.booking.updateMany({
+        where: { id: payment.bookingId, status: { not: 'CONFIRMED' } },
         data: { status: 'CONFIRMED' }
       });
+      if (confirmed.count > 0) notifyBookingStatus(payment.bookingId, 'CONFIRMED');
     }
   }
 

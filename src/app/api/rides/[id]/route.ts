@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { notifyRideStatus } from '@/lib/notifications';
 import { FINAL_STATUSES, getSessionUser, NEXT_STATUS, serializeRide } from '@/lib/rides';
 
 const actionSchema = z.discriminatedUnion('action', [
@@ -36,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const riderCanCancel = isRider && (ride.status === 'REQUESTED' || ride.status === 'ACCEPTED');
       if (!riderCanCancel && !isAdmin) return fail('You cannot cancel this ride.', 403);
       const updated = await prisma.ride.update({ where: { id }, data: { status: 'CANCELLED' } });
+      notifyRideStatus(id, 'CANCELLED');
       return NextResponse.json(serializeRide(updated));
     }
 
@@ -47,6 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         data: { driverId: user.id, status: 'ACCEPTED' }
       });
       if (result.count === 0) return fail('This ride is no longer available.', 409);
+      notifyRideStatus(id, 'ACCEPTED');
       return NextResponse.json(serializeRide((await prisma.ride.findUnique({ where: { id } }))!));
     }
 
@@ -61,6 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         where: { id },
         data: { driverId: driver.id, status: 'ACCEPTED' }
       });
+      if (driver.id !== ride.driverId) notifyRideStatus(id, 'ACCEPTED');
       return NextResponse.json(serializeRide(updated));
     }
 
@@ -69,6 +73,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const next = NEXT_STATUS[ride.status];
       if (!next) return fail('This ride cannot be advanced.', 409);
       const updated = await prisma.ride.update({ where: { id }, data: { status: next } });
+      notifyRideStatus(id, next);
       return NextResponse.json(serializeRide(updated));
     }
 

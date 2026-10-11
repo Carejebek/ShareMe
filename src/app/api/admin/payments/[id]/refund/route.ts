@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin";
 import { logAudit } from "@/lib/audit";
+import { notifyBookingStatus } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 
@@ -90,6 +91,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     throw e;
   }
 
+  if (cancelBooking && (payment.booking.status === "PENDING" || payment.booking.status === "CONFIRMED")) {
+    notifyBookingStatus(payment.booking.id, "CANCELLED");
+  }
   await logAudit(admin.id, "payment.refund", "PAYMENT", payment.id, {
     amount: cents / 100,
     reason,
