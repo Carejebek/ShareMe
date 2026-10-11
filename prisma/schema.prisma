@@ -97,11 +97,12 @@ model User {
   ridesRequested Ride[] @relation("RiderRides")
   ridesDriven    Ride[] @relation("DriverRides")
 
-  payouts         Payout[]   @relation("HostPayouts")
-  claimsFiled     Claim[]    @relation("ClaimReporter")
-  adminActions    AuditLog[] @relation("AuditAdmin")
-  refundsIssued   Refund[]   @relation("RefundAdmin")
-  payoutsRecorded Payout[]   @relation("PayoutAdmin")
+  payouts         Payout[]     @relation("HostPayouts")
+  claimsFiled     Claim[]      @relation("ClaimReporter")
+  adminActions    AuditLog[]   @relation("AuditAdmin")
+  refundsIssued   Refund[]     @relation("RefundAdmin")
+  payoutsRecorded Payout[]     @relation("PayoutAdmin")
+  smsMessages     SmsMessage[]
 }
 
 model Listing {
@@ -312,4 +313,22 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// Every SMS the platform tries to send through Twilio, with its delivery status.
+model SmsMessage {
+  id        String   @id @default(cuid())
+  to        String
+  body      String
+  event     String // e.g. "booking.confirmed", "ride.accepted", "test"
+  status    String // queued, sent, delivered, undelivered, failed, skipped
+  twilioSid String?  @unique
+  error     String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
 }
