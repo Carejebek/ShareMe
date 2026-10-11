@@ -110,7 +110,7 @@ export default function SearchBar() {
             </button>
           </form>
         ) : (
-          <form onSubmit={bookRide} className="grid grid-cols-1 items-end gap-4 p-5 md:grid-cols-[1fr_1fr_auto]">
+          <form onSubmit={bookRide} className="grid grid-cols-1 items-start gap-4 p-5 md:grid-cols-[1fr_1fr_auto]">
             <AddressInput label="Pickup" placeholder="Where are you?" value={pickup} onChange={setPickup} allowCurrentLocation />
             <AddressInput label="Drop-off" placeholder="Where are you going?" value={dropoff} onChange={setDropoff} />
             <button
