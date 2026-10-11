@@ -3,7 +3,7 @@ import { AdminActionButton, AdminSelectAction } from "@/components/admin/AdminAc
 import AdminForm from "@/components/admin/AdminForm";
 import AuditHistory from "@/components/admin/AuditHistory";
 import VerificationReview from "@/components/admin/VerificationReview";
-import { Badge, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
+import { Badge, Callout, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { dateTime, money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
@@ -75,18 +75,16 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <TextLink href="/dashboard/admin/users">← All users</TextLink>
-
       <PageHeader
         eyebrow={`User · ${user.id}`}
         title={user.name}
         description={user.email}
         actions={
           isSelf ? (
-            <span className="text-sm text-neutral-500">You can&apos;t change your own role or suspend yourself.</span>
+            <span className="text-[13px] text-slate-500">You can&apos;t change your own role or suspend yourself.</span>
           ) : (
             <>
-              <label className="flex items-center gap-3 text-sm font-bold text-neutral-600">
+              <label className="flex items-center gap-3 text-[13px] font-medium text-slate-600">
                 Role
                 <AdminSelectAction
                   endpoint={`/api/admin/users/${user.id}`}
@@ -123,10 +121,9 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       />
 
       {user.suspendedAt && (
-        <p className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-800">
-          <strong>Suspended {dateTime(user.suspendedAt)}.</strong> {user.suspensionReason} They can&apos;t log in, and their cars are
-          hidden from the marketplace.
-        </p>
+        <Callout tone="danger" title={`Suspended ${dateTime(user.suspendedAt)}`}>
+          {user.suspensionReason} They can&apos;t log in, and their cars are hidden from the marketplace.
+        </Callout>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -149,7 +146,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <DetailRow label="Last updated">{dateTime(user.updatedAt)}</DetailRow>
           </div>
         </div>
-        {user.bio && <p className="mt-4 text-sm text-neutral-600">{user.bio}</p>}
+        {user.bio && <p className="mt-4 text-[13px] text-slate-600">{user.bio}</p>}
       </Card>
 
       <Card title="Driver's licence">
@@ -194,7 +191,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 <Td>
                   {booking.listing.year} {booking.listing.make} {booking.listing.model}
                 </Td>
-                <Td className="font-bold">{money(booking.totalPrice)}</Td>
+                <Td className="font-medium">{money(booking.totalPrice)}</Td>
                 <Td>
                   <Badge value={booking.status} />
                 </Td>
@@ -212,7 +209,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 <Td>{shortDate(ride.createdAt)}</Td>
                 <Td>{ride.as}</Td>
                 <Td className="max-w-[280px] truncate">{ride.pickupAddress}</Td>
-                <Td className="font-bold">{money(ride.totalPrice)}</Td>
+                <Td className="font-medium">{money(ride.totalPrice)}</Td>
                 <Td>
                   <Badge value={ride.status} />
                 </Td>
@@ -227,7 +224,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             {user.payouts.map((payout) => (
               <tr key={payout.id}>
                 <Td>{dateTime(payout.createdAt)}</Td>
-                <Td className="font-bold">{money(payout.amount)}</Td>
+                <Td className="font-medium">{money(payout.amount)}</Td>
                 <Td>{payout.method}</Td>
               </tr>
             ))}
@@ -237,7 +234,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Internal notes">
-          <p className="mb-4 text-sm text-neutral-500">Only admins can see these.</p>
+          <p className="mb-4 text-[13px] text-slate-500">Only admins can see these.</p>
           <AdminForm
             endpoint={`/api/admin/users/${user.id}`}
             extraBody={{ action: "notes" }}

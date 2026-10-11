@@ -50,7 +50,7 @@ export default async function AdminVerificationsPage() {
             key={user.id}
             title={user.name}
             action={
-              <span className="text-sm text-neutral-500">
+              <span className="text-[13px] text-slate-500">
                 {user.email} · {user._count.listings} car{user._count.listings === 1 ? "" : "s"} · submitted {dateTime(user.updatedAt)} ·{" "}
                 <TextLink href={`/dashboard/admin/users/${user.id}`}>Profile →</TextLink>
               </span>

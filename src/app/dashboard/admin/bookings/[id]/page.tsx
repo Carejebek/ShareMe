@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AdminActionButton } from "@/components/admin/AdminActions";
 import AdminForm from "@/components/admin/AdminForm";
 import AuditHistory from "@/components/admin/AuditHistory";
-import { Badge, Card, DetailRow, PageHeader, TextLink } from "@/components/admin/ui";
+import { Badge, Callout, Card, DetailRow, PageHeader, TextLink } from "@/components/admin/ui";
 import { dateTime, money, requireAdmin, shortDate, stripePaymentUrl } from "@/lib/admin";
 import { BOOKING_TRANSITIONS } from "@/lib/adminRules";
 import { CLAIM_STATUS_LABEL, CLAIM_TYPE_LABEL } from "@/lib/claims";
@@ -34,8 +34,6 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
 
   return (
     <div className="space-y-6">
-      <TextLink href="/dashboard/admin/bookings">← All bookings</TextLink>
-
       <PageHeader
         eyebrow={`Booking · ${booking.id}`}
         title={`${booking.listing.year} ${booking.listing.make} ${booking.listing.model}`}
@@ -99,13 +97,13 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
         </Card>
 
         <Card title="People">
-          <p className="text-xs font-black uppercase tracking-wider text-neutral-400">Renter</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Renter</p>
           <DetailRow label="Name">
             <TextLink href={`/dashboard/admin/users/${booking.renter.id}`}>{booking.renter.name}</TextLink>
           </DetailRow>
           <DetailRow label="Email">{booking.renter.email}</DetailRow>
           <DetailRow label="Phone">{booking.renter.phone || "—"}</DetailRow>
-          <p className="mt-5 text-xs font-black uppercase tracking-wider text-neutral-400">Host</p>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Host</p>
           <DetailRow label="Name">
             <TextLink href={`/dashboard/admin/users/${booking.listing.host.id}`}>{booking.listing.host.name}</TextLink>
           </DetailRow>
@@ -143,37 +141,39 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
                 href={stripePaymentUrl(booking.payment.stripePaymentIntentId)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-4 inline-block text-sm font-black text-[#e62e1f]"
+                className="mt-4 inline-block text-[13px] font-semibold text-blue-700"
               >
                 Open in Stripe →
               </a>
             </>
           ) : (
-            <p className="text-sm text-neutral-500">The renter hasn&apos;t started checkout for this booking.</p>
+            <p className="text-[13px] text-slate-500">The renter hasn&apos;t started checkout for this booking.</p>
           )}
         </Card>
       </div>
 
       {booking.review && (
         <Card title="Renter's review">
-          <p className="font-bold">
+          <p className="font-medium">
             {"★".repeat(booking.review.rating)}
-            <span className="text-neutral-300">{"★".repeat(5 - booking.review.rating)}</span>
+            <span className="text-slate-300">{"★".repeat(5 - booking.review.rating)}</span>
           </p>
-          {booking.review.comment && <p className="mt-2 text-sm text-neutral-700">{booking.review.comment}</p>}
+          {booking.review.comment && <p className="mt-2 text-[13px] text-slate-700">{booking.review.comment}</p>}
         </Card>
       )}
       {paid && refundable > 0 && booking.payment && (
         <Card title="Refund the renter" className="max-w-2xl">
-          <p className="mb-4 text-sm text-neutral-600">
+          <p className="mb-4 text-[13px] text-slate-600">
             Sends money back to the renter&apos;s card through Stripe. This can&apos;t be undone. Up to {money(refundable)} can still be
             refunded.
           </p>
           {booking.payout && (
-            <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+            <div className="mb-4">
+            <Callout tone="danger">
               The host has already been paid {money(booking.hostEarnings)} for this trip. Refunding won&apos;t take that back, so
               you&apos;d need to recover it from the host yourself.
-            </p>
+            </Callout>
+            </div>
           )}
           <AdminForm
             endpoint={`/api/admin/payments/${booking.payment.id}/refund`}
@@ -195,14 +195,14 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
 
       {booking.payment && booking.payment.refunds.length > 0 && (
         <Card title="Refunds">
-          <ul className="space-y-3 text-sm">
+          <ul className="space-y-3 text-[13px]">
             {booking.payment.refunds.map((refund) => (
-              <li key={refund.id} className="flex justify-between gap-4 border-b border-neutral-100 pb-3 last:border-0">
+              <li key={refund.id} className="flex justify-between gap-4 border-b border-slate-100 pb-3 last:border-0">
                 <div>
-                  <p className="font-bold">{money(refund.amount)}</p>
-                  <p className="text-neutral-500">{refund.reason}</p>
+                  <p className="font-medium">{money(refund.amount)}</p>
+                  <p className="text-slate-500">{refund.reason}</p>
                 </div>
-                <p className="text-right text-neutral-500">
+                <p className="text-right text-slate-500">
                   {dateTime(refund.createdAt)}
                   <br />
                   by {refund.admin?.name ?? "—"}
@@ -215,7 +215,7 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
 
       {booking.claims.length > 0 && (
         <Card title="Claims on this trip">
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-[13px]">
             {booking.claims.map((claim) => (
               <li key={claim.id} className="flex items-center justify-between gap-4">
                 <TextLink href={`/dashboard/admin/claims/${claim.id}`}>

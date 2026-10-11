@@ -38,3 +38,11 @@ export const AUDIT_LABELS: Record<string, string> = {
   "review.delete": "Deleted review",
   "setting.update": "Changed setting",
 };
+
+// Where to link each kind of record (deleted reviews and settings have no page).
+export const TARGET_HREF: Partial<Record<string, (id: string) => string>> = {
+  USER: (id) => `/dashboard/admin/users/${id}`,
+  LISTING: (id) => `/dashboard/admin/vehicles/${id}`,
+  BOOKING: (id) => `/dashboard/admin/bookings/${id}`,
+  CLAIM: (id) => `/dashboard/admin/claims/${id}`,
+};

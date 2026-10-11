@@ -23,21 +23,21 @@ export default function VerificationReview({
           <img
             src={`/api/admin/users/${user.id}/license`}
             alt={`${user.name}'s driver's licence`}
-            className="max-h-56 w-full rounded-2xl bg-neutral-100 object-contain"
+            className="max-h-56 w-full rounded-lg bg-slate-100 object-contain"
           />
         </a>
       ) : (
-        <div className="flex h-40 items-center justify-center rounded-2xl bg-neutral-100 text-sm text-neutral-400">
+        <div className="flex h-40 items-center justify-center rounded-lg bg-slate-100 text-[13px] text-slate-400">
           No licence uploaded
         </div>
       )}
-      <div className="space-y-3 text-sm">
+      <div className="space-y-3 text-[13px]">
         <Badge value={user.verificationStatus} />
-        {user.verificationStatus === "VERIFIED" && <p className="text-neutral-500">Verified {dateTime(user.verifiedAt)}</p>}
+        {user.verificationStatus === "VERIFIED" && <p className="text-slate-500">Verified {dateTime(user.verifiedAt)}</p>}
         {user.verificationStatus === "REJECTED" && user.verificationNote && (
-          <p className="text-neutral-600">Rejected: {user.verificationNote}</p>
+          <p className="text-slate-600">Rejected: {user.verificationNote}</p>
         )}
-        <p className="text-neutral-500">
+        <p className="text-slate-500">
           Check that the name matches the account, the licence hasn&apos;t expired and the photo is clear.
         </p>
         {user.licenseImagePath && (

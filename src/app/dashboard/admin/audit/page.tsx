@@ -2,18 +2,10 @@ import type { Prisma } from "@prisma/client";
 import { describeDetails } from "@/components/admin/AuditHistory";
 import { EmptyState, FilterBar, PageHeader, Pagination, Table, Td, TextLink } from "@/components/admin/ui";
 import { ADMIN_PAGE_SIZE, dateTime, oneOf, pageNumber, param, requireAdmin, type SearchParams } from "@/lib/admin";
-import { AUDIT_LABELS } from "@/lib/audit";
+import { AUDIT_LABELS, TARGET_HREF } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 
 const TARGETS = ["USER", "LISTING", "BOOKING", "PAYMENT", "PAYOUT", "CLAIM", "REVIEW", "SETTING"] as const;
-
-// Where to link each kind of record (deleted reviews and settings have no page).
-const TARGET_HREF: Partial<Record<string, (id: string) => string>> = {
-  USER: (id) => `/dashboard/admin/users/${id}`,
-  LISTING: (id) => `/dashboard/admin/vehicles/${id}`,
-  BOOKING: (id) => `/dashboard/admin/bookings/${id}`,
-  CLAIM: (id) => `/dashboard/admin/claims/${id}`,
-};
 
 export default async function AdminAuditPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin();
@@ -66,14 +58,14 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: S
             const href = TARGET_HREF[entry.targetType]?.(entry.targetId);
             return (
               <tr key={entry.id}>
-                <Td className="whitespace-nowrap text-neutral-600">{dateTime(entry.createdAt)}</Td>
+                <Td className="whitespace-nowrap text-slate-600">{dateTime(entry.createdAt)}</Td>
                 <Td>{entry.admin ? <TextLink href={`/dashboard/admin/users/${entry.admin.id}`}>{entry.admin.name}</TextLink> : "—"}</Td>
-                <Td className="font-bold">{AUDIT_LABELS[entry.action] ?? entry.action}</Td>
+                <Td className="font-medium">{AUDIT_LABELS[entry.action] ?? entry.action}</Td>
                 <Td>
-                  <span className="text-xs text-neutral-500">{entry.targetType.toLowerCase()} </span>
+                  <span className="text-xs text-slate-500">{entry.targetType.toLowerCase()} </span>
                   {href ? <TextLink href={href}>{entry.targetId.slice(0, 10)}…</TextLink> : <span className="font-mono text-xs">{entry.targetId.slice(0, 18)}</span>}
                 </Td>
-                <Td className="max-w-[360px] break-words text-xs text-neutral-500">{describeDetails(entry.details)}</Td>
+                <Td className="max-w-[360px] break-words text-xs text-slate-500">{describeDetails(entry.details)}</Td>
               </tr>
             );
           })}

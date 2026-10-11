@@ -88,7 +88,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
       ) : (
         <Table head={["Vehicle", "Host", "Price", "Bookings", "Status", "Listed", "Actions"]}>
           {listings.map((listing) => (
-            <tr key={listing.id} className="hover:bg-neutral-50">
+            <tr key={listing.id} className="hover:bg-slate-50">
               <Td>
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -101,7 +101,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
                     <TextLink href={`/dashboard/admin/vehicles/${listing.id}`}>
                       {listing.year} {listing.make} {listing.model}
                     </TextLink>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-slate-500">
                       {listing.city}, {listing.state}
                     </p>
                   </div>
@@ -113,7 +113,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
                   {listing.host.suspendedAt ? <Badge value="SUSPENDED" /> : <Badge value={listing.host.verificationStatus} />}
                 </div>
               </Td>
-              <Td className="font-bold">{money(listing.pricePerDay)}/day</Td>
+              <Td className="font-medium">{money(listing.pricePerDay)}/day</Td>
               <Td>{listing._count.bookings}</Td>
               <Td>
                 <div className="flex flex-col items-start gap-1">
@@ -121,7 +121,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
                   <Badge value={listing.isActive ? "ACTIVE" : "INACTIVE"} />
                 </div>
               </Td>
-              <Td className="text-neutral-500">{shortDate(listing.createdAt)}</Td>
+              <Td className="text-slate-500">{shortDate(listing.createdAt)}</Td>
               <Td>
                 <div className="flex flex-wrap gap-2">
                   {listing.approvalStatus !== "APPROVED" &&
@@ -133,7 +133,7 @@ export default async function AdminVehiclesPage({ searchParams }: { searchParams
                         variant="green"
                       />
                     ) : (
-                      <span className="max-w-[140px] text-xs text-neutral-500">Host licence not verified yet</span>
+                      <span className="max-w-[140px] text-xs text-slate-500">Host licence not verified yet</span>
                     ))}
                   {listing.approvalStatus !== "REJECTED" && (
                     <AdminActionButton

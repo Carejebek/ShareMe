@@ -102,12 +102,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
       ) : (
         <Table head={["User", "Phone", "Role", "Licence", "Vehicles", "Bookings", "Rides driven", "Joined"]}>
           {users.map((user) => (
-            <tr key={user.id} className="hover:bg-neutral-50">
+            <tr key={user.id} className="hover:bg-slate-50">
               <Td>
                 <TextLink href={`/dashboard/admin/users/${user.id}`}>{user.name}</TextLink>
-                <p className="text-xs text-neutral-500">{user.email}</p>
+                <p className="text-xs text-slate-500">{user.email}</p>
               </Td>
-              <Td className="text-neutral-600">{user.phone || "—"}</Td>
+              <Td className="text-slate-600">{user.phone || "—"}</Td>
               <Td>
                 <div className="flex flex-col items-start gap-1">
                   <Badge value={user.role} />
@@ -120,7 +120,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
               <Td>{user._count.listings}</Td>
               <Td>{user._count.bookings}</Td>
               <Td>{user._count.ridesDriven}</Td>
-              <Td className="text-neutral-500">{shortDate(user.createdAt)}</Td>
+              <Td className="text-slate-500">{shortDate(user.createdAt)}</Td>
             </tr>
           ))}
         </Table>

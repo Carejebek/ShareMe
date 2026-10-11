@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { AdminActionButton, AdminSelectAction } from "@/components/admin/AdminActions";
-import { Badge, EmptyState, FilterBar, PageHeader, Pagination, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
+import { Badge, Callout, EmptyState, FilterBar, PageHeader, Pagination, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { ADMIN_PAGE_SIZE, dateTime, money, oneOf, pageNumber, param, requireAdmin, type SearchParams } from "@/lib/admin";
 import { STATUS_LABEL, formatDistance, mapsDirectionsUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -69,9 +69,9 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
       </div>
 
       {drivers.length === 0 && (
-        <p className="rounded-2xl bg-orange-50 px-5 py-4 text-sm font-bold text-orange-900">
-          There are no drivers yet. Make a user a driver from their profile on the Users page to start assigning rides.
-        </p>
+        <Callout tone="warn" title="No drivers yet">
+          Make a user a driver from their profile on the Users page to start assigning rides.
+        </Callout>
       )}
 
       <FilterBar
@@ -94,23 +94,23 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
             const finished = FINAL_STATUSES.includes(ride.status);
             const canAssign = ride.status === "REQUESTED" || ride.status === "ACCEPTED";
             return (
-              <tr key={ride.id} className="hover:bg-neutral-50">
-                <Td className="text-neutral-600">
-                  {ride.scheduledAt ? dateTime(ride.scheduledAt) : <span className="font-bold text-[#e62e1f]">ASAP</span>}
-                  <p className="text-xs text-neutral-400">booked {dateTime(ride.createdAt)}</p>
+              <tr key={ride.id} className="hover:bg-slate-50">
+                <Td className="text-slate-600">
+                  {ride.scheduledAt ? dateTime(ride.scheduledAt) : <span className="font-medium text-blue-700">ASAP</span>}
+                  <p className="text-xs text-slate-400">booked {dateTime(ride.createdAt)}</p>
                 </Td>
                 <Td className="max-w-[300px]">
-                  <a href={mapsDirectionsUrl(ride)} target="_blank" rel="noreferrer" className="hover:text-[#ff5a1f]">
+                  <a href={mapsDirectionsUrl(ride)} target="_blank" rel="noreferrer" className="hover:text-blue-700">
                     <p className="truncate font-semibold">{ride.pickupAddress}</p>
-                    <p className="truncate text-neutral-500">→ {ride.dropoffAddress}</p>
+                    <p className="truncate text-slate-500">→ {ride.dropoffAddress}</p>
                   </a>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-slate-400">
                     {formatDistance(ride.distanceMeters)} · ~{ride.durationMinutes} min
                   </p>
                 </Td>
                 <Td>
                   <TextLink href={`/dashboard/admin/users/${ride.rider.id}`}>{ride.rider.name}</TextLink>
-                  <p className="text-xs text-neutral-500">{ride.riderPhone}</p>
+                  <p className="text-xs text-slate-500">{ride.riderPhone}</p>
                 </Td>
                 <Td>
                   {canAssign && drivers.length > 0 ? (
@@ -125,13 +125,13 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
                   ) : ride.driver ? (
                     <TextLink href={`/dashboard/admin/users/${ride.driver.id}`}>{ride.driver.name}</TextLink>
                   ) : (
-                    <span className="text-neutral-400">—</span>
+                    <span className="text-slate-400">—</span>
                   )}
                 </Td>
                 <Td>
-                  <span className="font-black">{money(ride.totalPrice)}</span>
+                  <span className="font-semibold">{money(ride.totalPrice)}</span>
                   {ride.status === "COMPLETED" && (
-                    <p className={`text-xs font-bold ${ride.paid ? "text-green-700" : "text-orange-700"}`}>
+                    <p className={`text-xs font-medium ${ride.paid ? "text-emerald-700" : "text-amber-700"}`}>
                       {ride.paid ? "Paid" : "Unpaid"}
                     </p>
                   )}

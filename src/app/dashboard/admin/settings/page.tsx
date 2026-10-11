@@ -13,7 +13,7 @@ export default async function AdminSettingsPage() {
       <PageHeader title="Settings" description="Platform-wide settings. Every change is recorded in the audit log." />
 
       <Card title="Platform fee" className="max-w-2xl">
-        <p className="mb-5 text-sm text-neutral-600">
+        <p className="mb-5 text-[13px] text-slate-600">
           The share JayXZ keeps from each completed rental. On a {money(100)} trip, JayXZ keeps {money(example.platformFee)} and the
           host gets {money(example.hostEarnings)}. Changing it affects trips that haven&apos;t been paid out yet; trips already paid
           out keep the fee they were paid with.

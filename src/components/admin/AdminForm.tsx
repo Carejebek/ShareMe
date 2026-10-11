@@ -82,25 +82,25 @@ export default function AdminForm({
   }
 
   const input =
-    "w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-[#ff5a1f]";
+    "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
   const buttons = {
-    dark: "bg-neutral-950 hover:bg-[#ff5a1f]",
-    red: "bg-red-600 hover:bg-red-700",
-    green: "bg-green-600 hover:bg-green-700",
+    dark: "bg-slate-900 hover:bg-slate-700",
+    red: "bg-rose-600 hover:bg-rose-700",
+    green: "bg-emerald-600 hover:bg-emerald-700",
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-3.5">
       {fields.map((field) => (
-        <label key={field.name} className={field.type === "checkbox" ? "flex items-center gap-3 text-sm font-semibold" : "block"}>
+        <label key={field.name} className={field.type === "checkbox" ? "flex items-center gap-2.5 text-[13px] font-medium text-slate-700" : "block"}>
           {field.type === "checkbox" ? (
             <>
-              <input type="checkbox" name={field.name} defaultChecked={Boolean(field.defaultValue)} className="h-4 w-4 accent-[#ff5a1f]" />
+              <input type="checkbox" name={field.name} defaultChecked={Boolean(field.defaultValue)} className="h-4 w-4 rounded border-slate-300 accent-slate-900" />
               {field.label}
             </>
           ) : (
             <>
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-neutral-500">{field.label}</span>
+              <span className="mb-1 block text-[13px] font-medium text-slate-700">{field.label}</span>
               {field.type === "textarea" ? (
                 <textarea
                   name={field.name}
@@ -133,19 +133,19 @@ export default function AdminForm({
               )}
             </>
           )}
-          {field.hint && <span className="mt-1 block text-xs text-neutral-500">{field.hint}</span>}
+          {field.hint && <span className="mt-1 block text-xs text-slate-500">{field.hint}</span>}
         </label>
       ))}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 pt-1">
         <button
           type="submit"
           disabled={busy}
-          className={`rounded-xl px-5 py-3 text-sm font-black text-white transition disabled:opacity-50 ${buttons[variant]}`}
+          className={`h-9 rounded-md px-4 text-[13px] font-medium text-white shadow-sm transition disabled:opacity-50 ${buttons[variant]}`}
         >
           {busy ? "Working…" : submitLabel}
         </button>
-        {done && !error && <span className="text-sm font-bold text-green-700">{done}</span>}
-        {error && <span className="text-sm font-bold text-red-600">{error}</span>}
+        {done && !error && <span className="text-[13px] font-medium text-emerald-700">{done}</span>}
+        {error && <span className="text-[13px] font-medium text-rose-600">{error}</span>}
       </div>
     </form>
   );

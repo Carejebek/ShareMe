@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AdminActionButton } from "@/components/admin/AdminActions";
 import AdminForm from "@/components/admin/AdminForm";
 import AuditHistory from "@/components/admin/AuditHistory";
-import { Badge, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
+import { Badge, Callout, Card, DetailRow, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { money, requireAdmin, shortDate } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
@@ -39,8 +39,6 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
 
   return (
     <div className="space-y-6">
-      <TextLink href="/dashboard/admin/vehicles">← All vehicles</TextLink>
-
       <PageHeader
         eyebrow={`Vehicle · ${listing.id}`}
         title={`${listing.year} ${listing.make} ${listing.model}`}
@@ -87,21 +85,21 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
       </div>
 
       {!hostVerified && listing.approvalStatus !== "APPROVED" && (
-        <p className="rounded-2xl bg-orange-50 px-5 py-4 text-sm font-bold text-orange-900">
+        <Callout tone="warn" title="Host not verified">
           This car can&apos;t be approved until the host&apos;s driver&apos;s licence is verified (currently{" "}
           {listing.host.verificationStatus.toLowerCase()}).{" "}
           <TextLink href={`/dashboard/admin/users/${listing.host.id}`}>Review the host →</TextLink>
-        </p>
+        </Callout>
       )}
       {listing.host.suspendedAt && (
-        <p className="rounded-2xl bg-red-50 px-5 py-4 text-sm font-bold text-red-800">
-          The host is suspended, so this car is hidden from the marketplace.
-        </p>
+        <Callout tone="danger" title="Host suspended">
+          This car is hidden from the marketplace while the host is suspended.
+        </Callout>
       )}
       {listing.approvalStatus === "REJECTED" && listing.rejectionReason && (
-        <p className="rounded-2xl bg-neutral-100 px-5 py-4 text-sm text-neutral-700">
-          <strong>Rejection reason (shown to host):</strong> {listing.rejectionReason}
-        </p>
+        <Callout tone="neutral" title="Rejection reason (shown to host)">
+          {listing.rejectionReason}
+        </Callout>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -115,7 +113,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           {listing.imageUrls.map((url) => (
             <a key={url} href={url} target="_blank" rel="noreferrer">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-40 w-full rounded-2xl object-cover" />
+              <img src={url} alt="" className="h-40 w-full rounded-lg object-cover" />
             </a>
           ))}
         </div>
@@ -134,7 +132,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
           <DetailRow label="Public page">
             <TextLink href={`/listings/${listing.id}`}>{isLive ? "Open →" : "Preview (not public) →"}</TextLink>
           </DetailRow>
-          <p className="mt-4 whitespace-pre-line text-sm leading-6 text-neutral-600">{listing.description}</p>
+          <p className="mt-4 whitespace-pre-line text-[13px] leading-6 text-slate-600">{listing.description}</p>
         </Card>
 
         <Card title="Host">
@@ -142,7 +140,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
             <TextLink href={`/dashboard/admin/users/${listing.host.id}`}>{listing.host.name}</TextLink>
           </DetailRow>
           <DetailRow label="Email">
-            <a href={`mailto:${listing.host.email}`} className="hover:text-[#ff5a1f]">
+            <a href={`mailto:${listing.host.email}`} className="hover:text-blue-700">
               {listing.host.email}
             </a>
           </DetailRow>
@@ -169,7 +167,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
                 <Td>
                   <TextLink href={`/dashboard/admin/users/${booking.renter.id}`}>{booking.renter.name}</TextLink>
                 </Td>
-                <Td className="font-bold">{money(booking.totalPrice)}</Td>
+                <Td className="font-medium">{money(booking.totalPrice)}</Td>
                 <Td>
                   <Badge value={booking.status} />
                 </Td>
@@ -186,16 +184,16 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
         ) : (
           <ul className="space-y-4">
             {listing.reviews.map((review) => (
-              <li key={review.id} className="rounded-2xl bg-neutral-50 p-4 text-sm">
+              <li key={review.id} className="rounded-lg bg-slate-50 p-4 text-[13px]">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold">
+                  <p className="font-medium">
                     {"★".repeat(review.rating)}
-                    <span className="text-neutral-300">{"★".repeat(5 - review.rating)}</span> ·{" "}
+                    <span className="text-slate-300">{"★".repeat(5 - review.rating)}</span> ·{" "}
                     <TextLink href={`/dashboard/admin/users/${review.author.id}`}>{review.author.name}</TextLink>
                   </p>
-                  <span className="text-neutral-500">{shortDate(review.createdAt)}</span>
+                  <span className="text-slate-500">{shortDate(review.createdAt)}</span>
                 </div>
-                {review.comment && <p className="mt-2 text-neutral-700">{review.comment}</p>}
+                {review.comment && <p className="mt-2 text-slate-700">{review.comment}</p>}
               </li>
             ))}
           </ul>
@@ -203,7 +201,7 @@ export default async function AdminVehicleDetailPage({ params }: { params: Promi
       </Card>
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Internal notes">
-          <p className="mb-4 text-sm text-neutral-500">Only admins can see these.</p>
+          <p className="mb-4 text-[13px] text-slate-500">Only admins can see these.</p>
           <AdminForm
             endpoint={`/api/admin/listings/${listing.id}`}
             submitLabel="Save notes"

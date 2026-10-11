@@ -30,8 +30,6 @@ export default async function AdminClaimDetailPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6">
-      <TextLink href="/dashboard/admin/claims">← All claims</TextLink>
-
       <PageHeader
         eyebrow={`Claim · ${claim.id}`}
         title={`${CLAIM_TYPE_LABEL[claim.type]} — ${booking.listing.year} ${booking.listing.make} ${booking.listing.model}`}
@@ -42,9 +40,9 @@ export default async function AdminClaimDetailPage({ params }: { params: Promise
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card title="What happened">
-          <p className="whitespace-pre-line text-neutral-800">{claim.description}</p>
+          <p className="whitespace-pre-line text-slate-800">{claim.description}</p>
           {claim.amountRequested && (
-            <p className="mt-4 text-sm">
+            <p className="mt-4 text-[13px]">
               Amount requested: <strong>{money(claim.amountRequested)}</strong>
             </p>
           )}
@@ -53,7 +51,7 @@ export default async function AdminClaimDetailPage({ params }: { params: Promise
               {claim.imageUrls.map((url) => (
                 <a key={url} href={url} target="_blank" rel="noreferrer">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="h-32 w-full rounded-xl object-cover" />
+                  <img src={url} alt="" className="h-32 w-full rounded-md object-cover" />
                 </a>
               ))}
             </div>

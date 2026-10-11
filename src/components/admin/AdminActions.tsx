@@ -17,10 +17,10 @@ async function send(endpoint: string, method: Method, body?: unknown) {
 }
 
 const VARIANTS = {
-  dark: "bg-neutral-950 text-white hover:bg-[#ff5a1f]",
-  green: "bg-green-600 text-white hover:bg-green-700",
-  red: "bg-red-600 text-white hover:bg-red-700",
-  outline: "border border-neutral-300 bg-white text-neutral-900 hover:border-[#ff5a1f] hover:text-[#ff5a1f]",
+  dark: "bg-slate-900 text-white shadow-sm hover:bg-slate-700",
+  green: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700",
+  red: "bg-rose-600 text-white shadow-sm hover:bg-rose-700",
+  outline: "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900",
 };
 
 // A button that calls an admin API and refreshes the page on success.
@@ -84,11 +84,11 @@ export function AdminActionButton({
         type="button"
         onClick={run}
         disabled={busy || disabled}
-        className={`rounded-xl px-4 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]}`}
+        className={`h-8 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]}`}
       >
         {busy ? busyLabel ?? "Working…" : label}
       </button>
-      {error && <span className="mt-1 max-w-[220px] text-xs font-bold text-red-600">{error}</span>}
+      {error && <span className="mt-1 max-w-[220px] text-xs font-medium text-rose-600">{error}</span>}
     </span>
   );
 }
@@ -142,7 +142,7 @@ export function AdminSelectAction({
         value={current}
         disabled={busy}
         onChange={(e) => change(e.target.value)}
-        className="rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-bold outline-none focus:border-[#ff5a1f] disabled:opacity-50"
+        className="h-8 rounded-md border border-slate-300 bg-white px-2.5 text-[13px] font-medium text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (
@@ -151,7 +151,7 @@ export function AdminSelectAction({
           </option>
         ))}
       </select>
-      {error && <span className="mt-1 max-w-[220px] text-xs font-bold text-red-600">{error}</span>}
+      {error && <span className="mt-1 max-w-[220px] text-xs font-medium text-rose-600">{error}</span>}
     </span>
   );
 }

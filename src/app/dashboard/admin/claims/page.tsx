@@ -72,19 +72,19 @@ export default async function AdminClaimsPage({ searchParams }: { searchParams: 
       ) : (
         <Table head={["Filed", "Type", "Vehicle", "Reported by", "Requested", "Status"]}>
           {claims.map((claim) => (
-            <tr key={claim.id} className="hover:bg-neutral-50">
+            <tr key={claim.id} className="hover:bg-slate-50">
               <Td>
                 <TextLink href={`/dashboard/admin/claims/${claim.id}`}>{shortDate(claim.createdAt)}</TextLink>
               </Td>
-              <Td className="font-bold">{CLAIM_TYPE_LABEL[claim.type]}</Td>
+              <Td className="font-medium">{CLAIM_TYPE_LABEL[claim.type]}</Td>
               <Td>
                 {claim.booking.listing.year} {claim.booking.listing.make} {claim.booking.listing.model}
               </Td>
               <Td>
                 <TextLink href={`/dashboard/admin/users/${claim.reporter.id}`}>{claim.reporter.name}</TextLink>
-                <p className="text-xs text-neutral-500">{claim.reporter.id === claim.booking.renterId ? "Renter" : "Host"}</p>
+                <p className="text-xs text-slate-500">{claim.reporter.id === claim.booking.renterId ? "Renter" : "Host"}</p>
               </Td>
-              <Td className="font-bold">{claim.amountRequested ? money(claim.amountRequested) : "—"}</Td>
+              <Td className="font-medium">{claim.amountRequested ? money(claim.amountRequested) : "—"}</Td>
               <Td>
                 <Badge value={claim.status} label={CLAIM_STATUS_LABEL[claim.status]} />
               </Td>

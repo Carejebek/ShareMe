@@ -25,19 +25,20 @@ export default async function AuditHistory({ targetType, targetId }: { targetTyp
       {entries.length === 0 ? (
         <EmptyState>No admin actions recorded yet.</EmptyState>
       ) : (
-        <ul className="space-y-3 text-sm">
+        <ol className="relative space-y-4 text-[13px] before:absolute before:bottom-1 before:left-[5px] before:top-1 before:w-px before:bg-slate-200">
           {entries.map((entry) => (
-            <li key={entry.id} className="border-l-2 border-neutral-200 pl-4">
-              <p>
-                <span className="font-bold">{AUDIT_LABELS[entry.action] ?? entry.action}</span>{" "}
-                <span className="text-neutral-500">
-                  by {entry.admin?.name ?? "deleted admin"} · {dateTime(entry.createdAt)}
-                </span>
+            <li key={entry.id} className="relative pl-6">
+              <span className="absolute left-0 top-1 h-[11px] w-[11px] rounded-full border-2 border-white bg-slate-400 ring-1 ring-slate-200" />
+              <p className="text-slate-900">
+                <span className="font-medium">{AUDIT_LABELS[entry.action] ?? entry.action}</span>
               </p>
-              {entry.details && <p className="mt-0.5 break-words text-neutral-500">{describeDetails(entry.details)}</p>}
+              <p className="text-xs text-slate-500">
+                {entry.admin?.name ?? "Deleted admin"} · {dateTime(entry.createdAt)}
+              </p>
+              {entry.details && <p className="mt-1 break-words font-mono text-[11px] text-slate-500">{describeDetails(entry.details)}</p>}
             </li>
           ))}
-        </ul>
+        </ol>
       )}
     </Card>
   );

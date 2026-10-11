@@ -86,7 +86,7 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
       ) : (
         <Table head={["Trip", "Vehicle", "Renter", "Host", "Total", "Booking", "Payment", "Created"]}>
           {bookings.map((booking) => (
-            <tr key={booking.id} className="hover:bg-neutral-50">
+            <tr key={booking.id} className="hover:bg-slate-50">
               <Td>
                 <TextLink href={`/dashboard/admin/bookings/${booking.id}`}>
                   {shortDate(booking.startDate)} → {shortDate(booking.endDate)}
@@ -103,12 +103,12 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
               <Td>
                 <TextLink href={`/dashboard/admin/users/${booking.listing.host.id}`}>{booking.listing.host.name}</TextLink>
               </Td>
-              <Td className="font-bold">{money(booking.totalPrice)}</Td>
+              <Td className="font-medium">{money(booking.totalPrice)}</Td>
               <Td>
                 <Badge value={booking.status} />
               </Td>
-              <Td>{booking.payment ? <Badge value={booking.payment.status} /> : <span className="text-neutral-400">None</span>}</Td>
-              <Td className="text-neutral-500">{shortDate(booking.createdAt)}</Td>
+              <Td>{booking.payment ? <Badge value={booking.payment.status} /> : <span className="text-slate-400">None</span>}</Td>
+              <Td className="text-slate-500">{shortDate(booking.createdAt)}</Td>
             </tr>
           ))}
         </Table>

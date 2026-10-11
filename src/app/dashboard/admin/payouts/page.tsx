@@ -1,5 +1,5 @@
 import AdminForm from "@/components/admin/AdminForm";
-import { Card, EmptyState, PageHeader, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
+import { Card, EmptyState, PageHeader, SectionTitle, StatCard, Table, Td, TextLink } from "@/components/admin/ui";
 import { dateTime, money, requireAdmin, shortDate } from "@/lib/admin";
 import { getUnpaidBookings, owedFor } from "@/lib/payouts";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +48,7 @@ export default async function AdminPayoutsPage() {
         <StatCard tone="dark" label="Platform fees earned (paid-out trips)" value={money(paidTotals._sum.platformFee)} />
       </div>
 
-      <h2 className="pt-2 text-xl font-black">Waiting to be paid</h2>
+      <SectionTitle>Waiting to be paid</SectionTitle>
       {hosts.length === 0 ? (
         <EmptyState>Every host is paid up.</EmptyState>
       ) : (
@@ -59,7 +59,7 @@ export default async function AdminPayoutsPage() {
               key={host.id}
               title={`${host.name} — ${money(owed.host)}`}
               action={
-                <span className="text-sm text-neutral-500">
+                <span className="text-[13px] text-slate-500">
                   {host.email} · <TextLink href={`/dashboard/admin/users/${host.id}`}>Profile →</TextLink>
                 </span>
               }
@@ -78,14 +78,14 @@ export default async function AdminPayoutsPage() {
                         {b.listing.year} {b.listing.make} {b.listing.model}
                       </Td>
                       <Td>{money(b.netPaid)}</Td>
-                      <Td className="text-neutral-500">−{money(split.platformFee)}</Td>
-                      <Td className="font-black">{money(split.hostEarnings)}</Td>
+                      <Td className="text-slate-500">−{money(split.platformFee)}</Td>
+                      <Td className="font-semibold">{money(split.hostEarnings)}</Td>
                     </tr>
                   );
                 })}
               </Table>
-              <div className="mt-5 max-w-xl rounded-2xl bg-neutral-50 p-5">
-                <p className="mb-4 text-sm font-bold">Record payment of {money(owed.host)} to {host.name}</p>
+              <div className="mt-8 max-w-xl rounded-md border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-3 text-[13px] font-semibold text-slate-900">Record payment of {money(owed.host)} to {host.name}</p>
                 <AdminForm
                   endpoint="/api/admin/payouts"
                   method="POST"
@@ -106,22 +106,22 @@ export default async function AdminPayoutsPage() {
         })
       )}
 
-      <h2 className="pt-2 text-xl font-black">Payout history</h2>
+      <SectionTitle>Payout history</SectionTitle>
       {history.length === 0 ? (
         <EmptyState>No payouts recorded yet.</EmptyState>
       ) : (
         <Table head={["Date", "Host", "Amount", "Trips", "Paid via", "Reference", "Recorded by"]}>
           {history.map((p) => (
             <tr key={p.id}>
-              <Td className="text-neutral-600">{dateTime(p.createdAt)}</Td>
+              <Td className="text-slate-600">{dateTime(p.createdAt)}</Td>
               <Td>
                 <TextLink href={`/dashboard/admin/users/${p.host.id}`}>{p.host.name}</TextLink>
               </Td>
-              <Td className="font-black">{money(p.amount)}</Td>
+              <Td className="font-semibold">{money(p.amount)}</Td>
               <Td>{p._count.bookings}</Td>
               <Td>{p.method}</Td>
-              <Td className="text-neutral-500">{p.reference || "—"}</Td>
-              <Td className="text-neutral-500">{p.admin?.name ?? "—"}</Td>
+              <Td className="text-slate-500">{p.reference || "—"}</Td>
+              <Td className="text-slate-500">{p.admin?.name ?? "—"}</Td>
             </tr>
           ))}
         </Table>

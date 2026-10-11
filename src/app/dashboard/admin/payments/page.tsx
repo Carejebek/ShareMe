@@ -86,12 +86,12 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       ) : (
         <Table head={["Date", "Amount", "Status", "Renter", "Vehicle / host", "Booking", "Stripe"]}>
           {payments.map((payment) => (
-            <tr key={payment.id} className="hover:bg-neutral-50">
-              <Td className="text-neutral-600">{dateTime(payment.createdAt)}</Td>
+            <tr key={payment.id} className="hover:bg-slate-50">
+              <Td className="text-slate-600">{dateTime(payment.createdAt)}</Td>
               <Td>
-                <span className="font-black">{money(payment.amount)}</span>
+                <span className="font-semibold">{money(payment.amount)}</span>
                 {Number(payment.refundedAmount) > 0 && (
-                  <p className="text-xs font-bold text-purple-700">−{money(payment.refundedAmount)} refunded</p>
+                  <p className="text-xs font-medium text-purple-700">−{money(payment.refundedAmount)} refunded</p>
                 )}
               </Td>
               <Td>
@@ -106,7 +106,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
               </Td>
               <Td>
                 {payment.booking.listing.year} {payment.booking.listing.make} {payment.booking.listing.model}
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-slate-500">
                   Host:{" "}
                   <TextLink href={`/dashboard/admin/users/${payment.booking.listing.host.id}`}>
                     {payment.booking.listing.host.name}
@@ -121,7 +121,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                   href={stripePaymentUrl(payment.stripePaymentIntentId)}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-mono text-xs text-[#e62e1f] hover:underline"
+                  className="font-mono text-xs text-blue-700 hover:underline"
                 >
                   {payment.stripePaymentIntentId.slice(0, 14)}…
                 </a>

@@ -73,14 +73,14 @@ export default async function AdminReviewsPage({ searchParams }: { searchParams:
       ) : (
         <ul className="space-y-4">
           {reviews.map((review) => (
-            <li key={review.id} className="rounded-3xl bg-white p-6 shadow-sm">
+            <li key={review.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
-                  <p className="text-lg font-black">
-                    <span className="text-[#ff5a1f]">{"★".repeat(review.rating)}</span>
-                    <span className="text-neutral-200">{"★".repeat(5 - review.rating)}</span>
+                  <p className="text-base leading-none">
+                    <span className="text-amber-400">{"★".repeat(review.rating)}</span>
+                    <span className="text-slate-200">{"★".repeat(5 - review.rating)}</span>
                   </p>
-                  <p className="mt-1 text-sm text-neutral-500">
+                  <p className="mt-2 text-[13px] text-slate-500">
                     <TextLink href={`/dashboard/admin/users/${review.author.id}`}>{review.author.name}</TextLink> reviewed{" "}
                     <TextLink href={`/dashboard/admin/vehicles/${review.listing.id}`}>
                       {review.listing.year} {review.listing.make} {review.listing.model}
@@ -90,9 +90,9 @@ export default async function AdminReviewsPage({ searchParams }: { searchParams:
                     <TextLink href={`/dashboard/admin/bookings/${review.bookingId}`}>booking</TextLink>
                   </p>
                   {review.comment ? (
-                    <p className="mt-3 whitespace-pre-line text-neutral-800">{review.comment}</p>
+                    <p className="mt-3 whitespace-pre-line text-[13px] text-slate-800">{review.comment}</p>
                   ) : (
-                    <p className="mt-3 text-sm italic text-neutral-400">No comment</p>
+                    <p className="mt-3 text-[13px] italic text-slate-400">No comment</p>
                   )}
                 </div>
                 <AdminActionButton
