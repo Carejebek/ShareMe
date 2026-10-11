@@ -105,6 +105,17 @@ model User {
   smsMessages     SmsMessage[]
 }
 
+// What kind of vehicle a listing is, chosen by the host (used for browsing and filters).
+enum VehicleCategory {
+  ECONOMY
+  SEDAN
+  SUV
+  LUXURY
+  SPORTS
+  VAN
+  TRUCK
+}
+
 model Listing {
   id     String @id @default(cuid())
   hostId String
@@ -126,6 +137,7 @@ model Listing {
   fuelType        String                @default("GASOLINE")
   imageUrls       String[]
   isActive        Boolean               @default(true)
+  category        VehicleCategory?
   approvalStatus  ListingApprovalStatus @default(PENDING)
   rejectionReason String?
   adminNotes      String?
@@ -137,6 +149,7 @@ model Listing {
   reviews  Review[]
 
   @@index([city, state])
+  @@index([category])
   @@index([hostId])
 }
 
