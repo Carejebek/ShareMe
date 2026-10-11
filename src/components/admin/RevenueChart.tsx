@@ -5,7 +5,7 @@ import { money } from "@/lib/admin";
 export default function RevenueChart({ days }: { days: { date: Date; amount: number }[] }) {
   const width = 720;
   const height = 180;
-  const top = 8;
+  const top = 18;
   const bottom = 22;
   const left = 0;
   const plotHeight = height - top - bottom;
@@ -50,7 +50,7 @@ export default function RevenueChart({ days }: { days: { date: Date; amount: num
                 className={i === days.length - 1 ? "fill-[#ff5a1f]" : "fill-slate-800"}
                 pointerEvents="none"
               />
-              {(i === 0 || i === days.length - 1 || i % 7 === 0) && (
+              {(i === 0 || i === days.length - 1 || (i % 7 === 0 && days.length - 1 - i >= 4)) && (
                 <text
                   x={x + barWidth / 2}
                   y={height - 6}

@@ -211,7 +211,7 @@ export default async function AdminOverviewPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid items-start gap-6 xl:grid-cols-3">
         <Card title="Bookings by status" action={<TextLink href="/dashboard/admin/bookings">View all</TextLink>}>
           <SegmentBar
             segments={[
