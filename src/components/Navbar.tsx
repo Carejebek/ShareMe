@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -14,6 +15,7 @@ const dashboardByRole: Record<string, { label: string; href: string }> = {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   const user = session?.user as { name?: string | null; email?: string | null; role?: string } | undefined;
   const dashboard = user?.role ? dashboardByRole[user.role] : undefined;
@@ -25,6 +27,9 @@ export default function Navbar() {
     { label: "How It Works", href: "#how-it-works" },
     { label: "Help", href: "#support" },
   ];
+
+  // The admin portal has its own top bar and sidebar.
+  if (pathname?.startsWith("/dashboard/admin")) return null;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/55 backdrop-blur-xl">
