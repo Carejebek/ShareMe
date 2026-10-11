@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import ChangePassword from "@/components/account/ChangePassword";
 import LicenseUpload from "@/components/account/LicenseUpload";
+import PhoneNumber from "@/components/account/PhoneNumber";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/rides";
 
@@ -28,7 +29,7 @@ export default async function AccountPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
-    select: { name: true, email: true, role: true, verificationStatus: true, verificationNote: true },
+    select: { name: true, email: true, phone: true, role: true, verificationStatus: true, verificationNote: true },
   });
   if (!user) redirect("/login");
 
@@ -59,6 +60,14 @@ export default async function AccountPage() {
               <LicenseUpload resubmit={user.verificationStatus !== "UNVERIFIED"} />
             </div>
           )}
+        </div>
+
+        <div className="rounded-3xl bg-white p-7 shadow-sm">
+          <h2 className="text-xl font-black">Mobile number</h2>
+          <p className="mb-5 mt-2 text-sm text-neutral-600">
+            We text you when a booking is confirmed or cancelled. Message and data rates may apply; reply STOP to any message to opt out.
+          </p>
+          <PhoneNumber initial={user.phone} />
         </div>
 
         <div className="rounded-3xl bg-white p-7 shadow-sm">

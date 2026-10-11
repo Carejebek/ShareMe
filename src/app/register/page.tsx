@@ -7,6 +7,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [role, setRole] = useState("RENTER");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +28,7 @@ export default function RegisterPage() {
           email,
           password,
           role,
+          phone: phone || undefined,
         }),
       });
 
@@ -133,6 +135,21 @@ export default function RegisterPage() {
                     required
                     className="w-full rounded-xl border border-neutral-300 px-4 py-3.5 outline-none transition focus:border-[#ff5a1f] focus:ring-4 focus:ring-orange-100"
                     placeholder="you@example.com"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-neutral-800">
+                    Mobile number <span className="font-normal text-neutral-500">(optional, for trip updates by text)</span>
+                  </span>
+
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    autoComplete="tel"
+                    className="w-full rounded-xl border border-neutral-300 px-4 py-3.5 outline-none transition focus:border-[#ff5a1f] focus:ring-4 focus:ring-orange-100"
+                    placeholder="+1 555 123 4567"
                   />
                 </label>
 
