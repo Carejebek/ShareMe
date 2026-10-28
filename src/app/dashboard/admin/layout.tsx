@@ -43,6 +43,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         { label: "Drivers", href: "/dashboard/admin/drivers", icon: "route", count: pendingDrivers, urgent: true },
         { label: "Claims", href: "/dashboard/admin/claims", icon: "alert", count: openClaims, urgent: true },
         { label: "Users", href: "/dashboard/admin/users", icon: "users" },
+        { label: "Waitlist", href: "/dashboard/admin/waitlist", icon: "inbox" },
       ],
     },
     {
