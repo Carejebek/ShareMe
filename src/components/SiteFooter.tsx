@@ -30,6 +30,7 @@ const columns = [
   {
     title: "JayXZ",
     links: [
+      { label: "Join the waitlist", href: "/waitlist" },
       { label: "Support", href: "/support" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
