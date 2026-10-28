@@ -398,3 +398,25 @@ model SmsMessage {
   @@index([createdAt])
   @@index([status])
 }
+
+enum WaitlistInterest {
+  RIDE
+  RENT
+  DRIVE
+  HOST
+}
+
+// Visitors who signed up to hear when JayXZ launches in their area.
+model WaitlistEntry {
+  id        String           @id @default(cuid())
+  name      String
+  email     String           @unique
+  phone     String?
+  city      String?
+  interest  WaitlistInterest @default(RIDE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([createdAt])
+  @@index([interest])
+}
