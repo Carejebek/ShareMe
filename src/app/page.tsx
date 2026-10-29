@@ -6,7 +6,6 @@ import BrowseBrands from "@/components/home/BrowseBrands";
 import HowItWorks from "@/components/home/HowItWorks";
 import RidePromo from "@/components/home/RidePromo";
 import HostOpportunity from "@/components/home/HostOpportunity";
-import WaitlistSignup from "@/components/home/WaitlistSignup";
 
 // Render on every request so newly approved or removed cars show up immediately.
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ export default function HomePage() {
       <HowItWorks />
       <RidePromo />
       <HostOpportunity />
-      <WaitlistSignup />
     </main>
   );
 }

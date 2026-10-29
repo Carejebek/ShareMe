@@ -16,13 +16,13 @@ export default function Hero() {
       <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pt-32 pb-24">
         <div className="max-w-3xl">
 
-          <a
-            href="#waitlist"
+          <Link
+            href="/waitlist"
             className="mb-10 inline-flex items-center gap-3 rounded-full border-2 border-[#ff5a1f]/70 bg-white/10 px-6 py-3 text-base font-black text-white shadow-lg shadow-[#ff5a1f]/20 backdrop-blur transition hover:bg-[#ff5a1f] md:px-8 md:py-4 md:text-xl"
           >
             <span className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-[#ff5a1f] md:h-3.5 md:w-3.5" />
             Coming soon to more cities · Join the waitlist →
-          </a>
+          </Link>
 
           <p className="uppercase tracking-[0.35em] text-[#ff5a1f] font-bold">
             JayXZ
