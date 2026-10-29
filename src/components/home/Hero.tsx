@@ -16,6 +16,14 @@ export default function Hero() {
       <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pt-32 pb-24">
         <div className="max-w-3xl">
 
+          <a
+            href="#waitlist"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20"
+          >
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff5a1f]" />
+            Coming soon to more cities · Join the waitlist →
+          </a>
+
           <p className="uppercase tracking-[0.35em] text-[#ff5a1f] font-bold">
             JayXZ
           </p>
