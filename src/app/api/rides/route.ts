@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ...serializeRide(ride), clientSecret: intent.client_secret }, { status: 201 });
     } catch (err) {
       console.error('Creating ride card hold failed:', err);
-      await prisma.ride.update({ where: { id: ride.id }, data: { status: 'CANCELLED', cancelReason: 'Card payment unavailable' } });
+      await prisma.ride.update({ where: { id: ride.id }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelReason: 'Card payment unavailable' } });
       return NextResponse.json({ error: 'Card payments are unavailable right now. Please try again later.' }, { status: 503 });
     }
   } catch (err) {

@@ -61,6 +61,7 @@ export async function getUnpaidRides(driverId?: string) {
       pickupAddress: true,
       dropoffAddress: true,
       totalPrice: true,
+      refundedAmount: true,
       platformFee: true,
       driverEarnings: true,
       driver: { select: { id: true, name: true, email: true } },
@@ -69,10 +70,11 @@ export async function getUnpaidRides(driverId?: string) {
   });
 }
 
-export function owedForRides(rides: { totalPrice: unknown; platformFee: unknown; driverEarnings: unknown }[]) {
+// Gross is what the rider paid after refunds; the fee and driver share are already reduced for refunds.
+export function owedForRides(rides: { totalPrice: unknown; refundedAmount: unknown; platformFee: unknown; driverEarnings: unknown }[]) {
   return rides.reduce(
     (totals, r) => ({
-      gross: totals.gross + Number(r.totalPrice),
+      gross: totals.gross + Number(r.totalPrice) - Number(r.refundedAmount ?? 0),
       fee: totals.fee + Number(r.platformFee ?? 0),
       host: totals.host + Number(r.driverEarnings ?? 0),
     }),

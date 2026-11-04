@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { notifyBookingStatus } from '@/lib/notifications';
-import { markRideAuthorized } from '@/lib/ridePayments';
+import { markRideAuthorized, syncRideRefundTotal } from '@/lib/ridePayments';
 import { stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 
@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
           ...(charge.refunded ? { status: 'REFUNDED' } : {})
         }
       });
+      const ride = await prisma.ride.findUnique({ where: { stripePaymentIntentId: intentId }, select: { id: true } });
+      if (ride) await syncRideRefundTotal(prisma, ride.id, charge.amount_refunded / 100);
     }
   }
 

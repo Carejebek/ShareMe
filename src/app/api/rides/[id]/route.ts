@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { logAudit } from '@/lib/audit';
 import { notifyRideStatus } from '@/lib/notifications';
 import { getActiveDriver } from '@/lib/drivers';
 import { captureRideFare, releaseRideHold } from '@/lib/ridePayments';
@@ -15,6 +16,9 @@ const actionSchema = z.discriminatedUnion('action', [
 ]);
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
+
+// When each step happened, for the admin ride timeline.
+const STATUS_TIME = { EN_ROUTE: 'enRouteAt', IN_PROGRESS: 'startedAt', COMPLETED: 'completedAt' } as const;
 
 // PATCH /api/rides/:id  { action: 'cancel' | 'accept' | 'assign' | 'advance' | 'markPaid', ... }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -40,11 +44,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!riderCanCancel && !isAdmin) return fail('You cannot cancel this ride.', 403);
       const claimed = await prisma.ride.updateMany({
         where: { id, status: ride.status },
-        data: { status: 'CANCELLED', cancelReason: isRider ? 'Cancelled by rider' : 'Cancelled by JayXZ' }
+        data: { status: 'CANCELLED', cancelledAt: new Date(), cancelReason: isRider ? 'Cancelled by rider' : 'Cancelled by JayXZ' }
       });
       if (claimed.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
       await releaseRideHold(ride);
       if (ride.status !== 'AWAITING_PAYMENT') notifyRideStatus(id, 'CANCELLED');
+      if (isAdmin && !isRider) await logAudit(user.id, 'ride.cancel', 'RIDE', id, { from: ride.status });
       return NextResponse.json(serializeRide((await prisma.ride.findUnique({ where: { id } }))!));
     }
 
@@ -76,6 +81,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       });
       if (result.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
       if (driver.id !== ride.driverId) notifyRideStatus(id, 'ACCEPTED');
+      await logAudit(user.id, 'ride.assign', 'RIDE', id, { driver: driver.name, previousDriverId: ride.driverId });
       return NextResponse.json(serializeRide((await prisma.ride.findUnique({ where: { id } }))!));
     }
 
@@ -85,7 +91,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!next) return fail('This ride cannot be advanced.', 409);
       const result = await prisma.ride.updateMany({
         where: { id, status: ride.status },
-        data: { status: next, ...(next === 'COMPLETED' ? { completedAt: new Date() } : {}) }
+        data: { status: next, [STATUS_TIME[next as keyof typeof STATUS_TIME]]: new Date() }
       });
       if (result.count === 0) return fail('This ride was just updated. Refresh and try again.', 409);
 
@@ -96,6 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         if (!capture.ok) warning = `The trip is complete but the card charge failed (${capture.error.replace(/\.$/, '')}). An admin will follow up.`;
       }
       notifyRideStatus(id, next);
+      if (isAdmin && !isAssignedDriver) await logAudit(user.id, 'ride.advance', 'RIDE', id, { from: ride.status, to: next, warning });
       return NextResponse.json({ ...serializeRide((await prisma.ride.findUnique({ where: { id } }))!), warning });
     }
 

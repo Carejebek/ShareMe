@@ -120,12 +120,15 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
                   <p className="text-xs text-slate-400">booked {dateTime(ride.createdAt)}</p>
                 </Td>
                 <Td className="max-w-[300px]">
-                  <a href={mapsDirectionsUrl(ride)} target="_blank" rel="noreferrer" className="hover:text-blue-700">
+                  <a href={`/dashboard/admin/rides/${ride.id}`} className="hover:text-blue-700">
                     <p className="truncate font-semibold">{ride.pickupAddress}</p>
                     <p className="truncate text-slate-500">→ {ride.dropoffAddress}</p>
                   </a>
                   <p className="text-xs text-slate-400">
-                    {formatDistance(ride.distanceMeters)} · ~{ride.durationMinutes} min
+                    {formatDistance(ride.distanceMeters)} · ~{ride.durationMinutes} min ·{" "}
+                    <a href={mapsDirectionsUrl(ride)} target="_blank" rel="noreferrer" className="hover:text-blue-700">
+                      map
+                    </a>
                   </p>
                 </Td>
                 <Td>
@@ -161,13 +164,15 @@ export default async function AdminRidesPage({ searchParams }: { searchParams: S
                   >
                     {PAYMENT_LABEL[ride.paymentStatus === "UNPAID" && ride.paid ? "CASH" : ride.paymentStatus]}
                   </p>
+                  {Number(ride.refundedAmount) > 0 && <p className="text-xs text-amber-700">Refunded {money(ride.refundedAmount)}</p>}
                   {ride.cancelReason && <p className="text-xs text-slate-400">{ride.cancelReason}</p>}
                 </Td>
                 <Td>
                   <Badge value={ride.status} label={STATUS_LABEL[ride.status]} />
                 </Td>
                 <Td>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <TextLink href={`/dashboard/admin/rides/${ride.id}`}>Details</TextLink>
                     {ride.status === "COMPLETED" && !ride.paid && ride.paymentStatus === "UNPAID" && (
                       <AdminActionButton
                         endpoint={`/api/rides/${ride.id}`}

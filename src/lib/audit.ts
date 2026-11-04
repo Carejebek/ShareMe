@@ -36,6 +36,12 @@ export const AUDIT_LABELS: Record<string, string> = {
   "driver.approve": "Approved driver",
   "driver.reject": "Rejected driver",
   "payment.refund": "Issued refund",
+  "ride.refund": "Refunded ride fare",
+  "ride.cancel": "Cancelled ride",
+  "ride.assign": "Assigned driver",
+  "ride.advance": "Moved ride to next step",
+  "ride.fare": "Adjusted ride fare",
+  "driver.insurance_reminder": "Sent insurance reminder",
   "payout.create": "Recorded host payout",
   "claim.update": "Updated claim",
   "review.delete": "Deleted review",
@@ -50,4 +56,5 @@ export const TARGET_HREF: Partial<Record<string, (id: string) => string>> = {
   LISTING: (id) => `/dashboard/admin/vehicles/${id}`,
   BOOKING: (id) => `/dashboard/admin/bookings/${id}`,
   CLAIM: (id) => `/dashboard/admin/claims/${id}`,
+  RIDE: (id) => `/dashboard/admin/rides/${id}`,
 };

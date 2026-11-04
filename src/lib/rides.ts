@@ -21,8 +21,11 @@ export const NEXT_STATUS: Partial<Record<RideStatus, RideStatus>> = {
 };
 
 export function serializeRide(ride: Ride & Record<string, any>) {
+  // The route polyline is only used for the admin map; keep it out of rider/driver polling responses.
+  const { routePolyline: _routePolyline, ...rest } = ride;
   return {
-    ...ride,
+    ...rest,
+    refundedAmount: Number(ride.refundedAmount ?? 0),
     ratePerMinute: Number(ride.ratePerMinute),
     minimumFare: Number(ride.minimumFare),
     totalPrice: Number(ride.totalPrice),

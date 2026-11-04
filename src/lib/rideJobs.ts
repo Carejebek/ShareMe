@@ -33,7 +33,7 @@ export async function runRideJobs() {
   for (const ride of abandoned) {
     const claimed = await prisma.ride.updateMany({
       where: { id: ride.id, status: "AWAITING_PAYMENT" },
-      data: { status: "CANCELLED", cancelReason: "Payment wasn't completed" },
+      data: { status: "CANCELLED", cancelledAt: now, cancelReason: "Payment wasn't completed" },
     });
     if (claimed.count) {
       await releaseRideHold(ride);
@@ -59,7 +59,7 @@ export async function runRideJobs() {
   for (const ride of expired) {
     const claimed = await prisma.ride.updateMany({
       where: { id: ride.id, status: "REQUESTED", driverId: null },
-      data: { status: "CANCELLED", cancelReason: "No driver was available" },
+      data: { status: "CANCELLED", cancelledAt: now, cancelReason: "No driver was available" },
     });
     if (claimed.count) {
       await releaseRideHold(ride);

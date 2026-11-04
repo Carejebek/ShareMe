@@ -1,4 +1,4 @@
-import type { Ride } from "@prisma/client";
+import type { Prisma, Ride } from "@prisma/client";
 import { notifyNewRideRequest } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getPlatformFeePercent, splitEarnings } from "@/lib/settings";
@@ -51,7 +51,12 @@ export async function captureRideFare(rideId: string) {
   const ride = await prisma.ride.findUnique({ where: { id: rideId } });
   if (!ride?.stripePaymentIntentId || ride.paymentStatus !== "AUTHORIZED") return { ok: false, error: "No card hold to charge." };
   try {
-    const intent = await stripe.paymentIntents.capture(ride.stripePaymentIntentId, {}, { idempotencyKey: `ride-capture-${ride.id}` });
+    // totalPrice can be lower than the hold if an admin adjusted the fare; Stripe releases the rest.
+    const intent = await stripe.paymentIntents.capture(
+      ride.stripePaymentIntentId,
+      { amount_to_capture: Math.round(Number(ride.totalPrice) * 100) },
+      { idempotencyKey: `ride-capture-${ride.id}` }
+    );
     const charged = intent.amount_received / 100;
     const split = splitEarnings(charged, await getPlatformFeePercent());
     await prisma.ride.update({
@@ -78,4 +83,30 @@ export async function releaseRideHold(ride: Pick<Ride, "id" | "stripePaymentInte
   } catch (error) {
     console.error("Releasing ride hold failed:", ride.id, error);
   }
+}
+
+// Records Stripe's running refund total for a ride (Stripe is the source of truth, so it's copied, not added).
+// If the driver hasn't been paid out yet, their share and the platform fee shrink in proportion,
+// keeping the fee percentage that was locked in at capture.
+export async function syncRideRefundTotal(
+  db: Prisma.TransactionClient | typeof prisma,
+  rideId: string,
+  totalRefunded: number
+) {
+  const ride = await db.ride.findUnique({ where: { id: rideId } });
+  if (!ride) return null;
+  const charged = Number(ride.totalPrice);
+  const refunded = Math.min(Math.round(totalRefunded * 100) / 100, charged);
+  const data: Prisma.RideUpdateInput = { refundedAmount: refunded };
+  if (!ride.payoutId && ride.platformFee !== null && charged > 0) {
+    const net = Math.round((charged - refunded) * 100) / 100;
+    // The fee's share of the fare, locked in at capture. Earlier partial refunds keep the same ratio.
+    const fee = Number(ride.platformFee);
+    const split = fee + Number(ride.driverEarnings ?? 0);
+    const share = split > 0 ? fee / split : 0;
+    const platformFee = Math.round(net * share * 100) / 100;
+    data.platformFee = platformFee;
+    data.driverEarnings = Math.round((net - platformFee) * 100) / 100;
+  }
+  return db.ride.update({ where: { id: rideId }, data });
 }

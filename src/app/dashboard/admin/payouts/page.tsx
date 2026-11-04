@@ -134,7 +134,10 @@ export default async function AdminPayoutsPage() {
                             <Td className="max-w-[260px] truncate">
                               {r.pickupAddress.split(",")[0]} → {r.dropoffAddress.split(",")[0]}
                             </Td>
-                            <Td className="tabular-nums">{money(r.totalPrice)}</Td>
+                            <Td className="tabular-nums">
+                              {money(Number(r.totalPrice) - Number(r.refundedAmount))}
+                              {Number(r.refundedAmount) > 0 && <p className="text-xs text-slate-400">after {money(r.refundedAmount)} refund</p>}
+                            </Td>
                             <Td className="tabular-nums text-slate-500">−{money(r.platformFee)}</Td>
                             <Td className="font-semibold tabular-nums">{money(r.driverEarnings)}</Td>
                           </tr>
