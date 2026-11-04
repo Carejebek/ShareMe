@@ -18,17 +18,17 @@ export default function BrowseBrands() {
             Popular brands
           </p>
 
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-neutral-950 md:text-5xl">
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl md:text-5xl">
             Browse by brand
           </h2>
         </div>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:mt-12 md:grid-cols-4 xl:grid-cols-8">
           {brands.map((brand) => (
             <a
               key={brand}
               href={`/cars?make=${encodeURIComponent(brand)}`}
-              className="flex min-h-28 items-center justify-center rounded-2xl border border-neutral-200 bg-white px-4 text-center text-base font-black text-neutral-900 shadow-sm transition hover:-translate-y-1 hover:border-[#ff5a1f] hover:text-[#e62e1f] hover:shadow-xl"
+              className="flex min-h-20 items-center sm:min-h-28 justify-center rounded-2xl border border-neutral-200 bg-white px-4 text-center text-base font-black text-neutral-900 shadow-sm transition hover:-translate-y-1 hover:border-[#ff5a1f] hover:text-[#e62e1f] hover:shadow-xl"
             >
               {brand}
             </a>

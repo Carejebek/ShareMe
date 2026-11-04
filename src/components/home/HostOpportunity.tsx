@@ -2,14 +2,14 @@ import Link from "next/link";
 
 export default function HostOpportunity() {
   return (
-    <section className="bg-neutral-950 py-24 text-white">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
+    <section className="bg-neutral-950 py-16 text-white md:py-24">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 md:gap-12 lg:grid-cols-2 lg:items-center">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.35em] text-[#ff5a1f]">
             Own a vehicle?
           </p>
 
-          <h2 className="mt-5 text-5xl font-black leading-tight">
+          <h2 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">
             Turn idle vehicles
             <br />
             into opportunity.

@@ -45,8 +45,8 @@ export default function SiteFooter() {
 
   return (
     <footer id="support" className="bg-black py-14 text-gray-400">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-[1.5fr_repeat(4,1fr)]">
-        <div>
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-6 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+        <div className="col-span-2 md:col-span-1">
           <Link href="/" className="text-3xl font-extrabold text-white">
             Jay<span className="text-[#ff5a1f]">XZ</span>
           </Link>
@@ -55,10 +55,10 @@ export default function SiteFooter() {
         {columns.map((column) => (
           <div key={column.title}>
             <p className="text-sm font-bold uppercase tracking-wider text-white">{column.title}</p>
-            <ul className="mt-4 space-y-2">
+            <ul className="mt-3 space-y-1">
               {column.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-white">
+                  <Link href={link.href} className="inline-block py-1 hover:text-white">
                     {link.label}
                   </Link>
                 </li>

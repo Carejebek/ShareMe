@@ -157,13 +157,13 @@ export default function RideBooking({
                 key={opt}
                 type="button"
                 onClick={() => setWhen(opt)}
-                className={`flex-1 rounded-xl border px-4 py-3 font-bold ${
+                className={`flex-1 rounded-xl border px-3 py-3 text-sm font-bold sm:px-4 sm:text-base ${
                   when === opt
                     ? 'border-[#ff5a1f] bg-orange-50 text-[#e62e1f]'
                     : 'border-neutral-300 bg-white text-neutral-700'
                 }`}
               >
-                {opt === 'now' ? 'As soon as possible' : 'Schedule for later'}
+                {opt === 'now' ? 'Now' : 'Schedule for later'}
               </button>
             ))}
           </div>

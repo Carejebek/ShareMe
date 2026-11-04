@@ -86,25 +86,25 @@ export default async function ListingDetailsPage({
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-3xl bg-neutral-200">
+        <div className="mt-8 grid gap-2 sm:gap-4 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-2xl bg-neutral-200 sm:rounded-3xl">
             <img
               src={images[0]}
               alt={`${listing.make} ${listing.model}`}
-              className="h-full min-h-[420px] w-full object-cover"
+              className="aspect-[4/3] h-full w-full object-cover sm:aspect-auto sm:min-h-[420px]"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:grid-cols-2">
             {images.slice(1, 5).map((image, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-3xl bg-neutral-200"
+                className="overflow-hidden rounded-xl bg-neutral-200 sm:rounded-3xl"
               >
                 <img
                   src={image}
                   alt={`${listing.make} ${listing.model}`}
-                  className="h-full min-h-[200px] w-full object-cover"
+                  className="aspect-square h-full w-full object-cover sm:aspect-auto sm:min-h-[200px]"
                 />
               </div>
             ))}
@@ -114,7 +114,7 @@ export default async function ListingDetailsPage({
                 {[1, 2, 3, 4].map((item) => (
                   <div
                     key={item}
-                    className="flex min-h-[200px] items-center justify-center rounded-3xl bg-neutral-200 text-neutral-400"
+                    className="hidden min-h-[200px] items-center justify-center rounded-3xl bg-neutral-200 text-neutral-400 lg:flex"
                   >
                     JayXZ
                   </div>
@@ -126,7 +126,7 @@ export default async function ListingDetailsPage({
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
           <div>
-            <section className="rounded-3xl bg-white p-8 shadow-sm">
+            <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-8">
               <h2 className="text-2xl font-black text-neutral-950">
                 About this vehicle
               </h2>
@@ -135,38 +135,38 @@ export default async function ListingDetailsPage({
                 {listing.description}
               </p>
 
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                <div className="rounded-2xl bg-neutral-50 p-5">
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                <div className="min-w-0 rounded-2xl bg-neutral-50 p-4 sm:p-5">
                   <p className="text-sm text-neutral-500">Seats</p>
-                  <p className="mt-1 font-black text-neutral-950">
+                  <p className="mt-1 break-words text-sm font-black text-neutral-950 sm:text-base">
                     {listing.seats}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-neutral-50 p-5">
+                <div className="min-w-0 rounded-2xl bg-neutral-50 p-4 sm:p-5">
                   <p className="text-sm text-neutral-500">Transmission</p>
-                  <p className="mt-1 font-black text-neutral-950">
+                  <p className="mt-1 break-words text-sm font-black text-neutral-950 sm:text-base">
                     {listing.transmission}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-neutral-50 p-5">
+                <div className="min-w-0 rounded-2xl bg-neutral-50 p-4 sm:p-5">
                   <p className="text-sm text-neutral-500">Fuel type</p>
-                  <p className="mt-1 font-black text-neutral-950">
+                  <p className="mt-1 break-words text-sm font-black text-neutral-950 sm:text-base">
                     {listing.fuelType}
                   </p>
                 </div>
 
                 {listing.category && (
-                  <div className="rounded-2xl bg-neutral-50 p-5">
+                  <div className="min-w-0 rounded-2xl bg-neutral-50 p-4 sm:p-5">
                     <p className="text-sm text-neutral-500">Vehicle type</p>
-                    <p className="mt-1 font-black text-neutral-950">{CATEGORY_LABEL[listing.category]}</p>
+                    <p className="mt-1 break-words text-sm font-black text-neutral-950 sm:text-base">{CATEGORY_LABEL[listing.category]}</p>
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="mt-8 rounded-3xl bg-white p-8 shadow-sm">
+            <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-8">
               <p className="text-sm font-black uppercase tracking-[0.25em] text-[#ff5a1f]">
                 Your host
               </p>
@@ -194,7 +194,7 @@ export default async function ListingDetailsPage({
               )}
             </section>
 
-            <section className="mt-8 rounded-3xl bg-white p-8 shadow-sm">
+            <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-8">
               <h2 className="text-2xl font-black text-neutral-950">
                 Guest reviews
               </h2>

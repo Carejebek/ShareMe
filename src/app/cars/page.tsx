@@ -53,7 +53,7 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
   return (
     <main className="min-h-screen bg-[#f7f7f7] pt-24">
       <section className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mx-auto max-w-7xl px-6 py-8 md:py-10">
           <p className="text-sm font-black uppercase tracking-[0.35em] text-[#ff5a1f]">JayXZ Marketplace</p>
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
@@ -70,20 +70,20 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
       <section className="border-b border-neutral-200 bg-white">
         {/* Plain GET form: filters live in the URL, so searches can be shared and bookmarked. */}
         <form action="/cars" className="mx-auto max-w-7xl space-y-4 px-6 py-6">
-          <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto] md:items-end">
-            <label>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto] md:items-end">
+            <label className="col-span-2 md:col-span-1">
               <span className={label}>Where</span>
               <input name="where" defaultValue={filters.where} placeholder="City or state" className={field} />
             </label>
-            <label>
+            <label className="col-span-2 sm:col-span-1">
               <span className={label}>From</span>
               <input type="date" name="from" min={today} defaultValue={filters.from} className={field} />
             </label>
-            <label>
+            <label className="col-span-2 sm:col-span-1">
               <span className={label}>Until</span>
               <input type="date" name="until" min={today} defaultValue={filters.until} className={field} />
             </label>
-            <label>
+            <label className="col-span-2 md:col-span-1">
               <span className={label}>Vehicle type</span>
               <select name="category" defaultValue={filters.category} className={field}>
                 <option value="">All vehicles</option>
@@ -94,12 +94,12 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
                 ))}
               </select>
             </label>
-            <button type="submit" className="rounded-xl bg-neutral-950 px-8 py-3 font-black text-white transition hover:bg-[#ff5a1f]">
+            <button type="submit" className="col-span-2 rounded-xl bg-neutral-950 md:col-span-1 px-8 py-3 font-black text-white transition hover:bg-[#ff5a1f]">
               Search
             </button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5 md:items-end">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:items-end">
             <label>
               <span className={label}>Brand</span>
               <select name="make" defaultValue={filters.make} className={field}>
@@ -137,7 +137,7 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
               <span className={label}>Max price / day</span>
               <input type="number" name="maxPrice" min={1} step={1} defaultValue={filters.maxPrice ?? ""} placeholder="Any" className={field} />
             </label>
-            <label>
+            <label className="col-span-2 md:col-span-1">
               <span className={label}>Sort by</span>
               <select name="sort" defaultValue={filters.sort} className={field}>
                 {Object.entries(SORTS).map(([value, s]) => (
