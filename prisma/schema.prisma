@@ -102,6 +102,7 @@ model User {
   claimsFiled     Claim[]        @relation("ClaimReporter")
   adminActions    AuditLog[]     @relation("AuditAdmin")
   refundsIssued   Refund[]       @relation("RefundAdmin")
+  rideRefunds     RideRefund[]   @relation("RideRefundAdmin")
   payoutsRecorded Payout[]       @relation("PayoutAdmin")
   smsMessages     SmsMessage[]
   driverProfile   DriverProfile?
@@ -235,21 +236,25 @@ enum DriverStatus {
 
 // A user's application to drive. Their licence is checked through the existing licence review on User.
 model DriverProfile {
-  id                 String       @id @default(cuid())
-  userId             String       @unique
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status             DriverStatus @default(PENDING)
-  vehicleMake        String
-  vehicleModel       String
-  vehicleYear        Int
-  vehicleColor       String
-  vehiclePlate       String
-  insuranceImagePath String // private file, served only to admins
-  insuranceExpiresAt DateTime
-  reviewNote         String? // reason shown to the driver when rejected
-  submittedAt        DateTime     @default(now())
-  reviewedAt         DateTime?
-  updatedAt          DateTime     @updatedAt
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                DriverStatus @default(PENDING)
+  vehicleMake           String
+  vehicleModel          String
+  vehicleYear           Int
+  vehicleColor          String
+  vehiclePlate          String
+  insuranceImagePath    String // private file, served only to admins
+  insuranceExpiresAt    DateTime
+  // Insurance expiry texts: which expiry date the last reminder was about, and how many days were left
+  // (30, 7, 1, or 0 = expired). A new insurance date resets the reminders.
+  insuranceReminderFor  DateTime?
+  insuranceReminderDays Int?
+  reviewNote            String? // reason shown to the driver when rejected
+  submittedAt           DateTime     @default(now())
+  reviewedAt            DateTime?
+  updatedAt             DateTime     @updatedAt
 
   @@index([status])
 }
@@ -279,6 +284,12 @@ model Ride {
   minimumFare     Decimal @db.Decimal(8, 2)
   totalPrice      Decimal @db.Decimal(10, 2)
   currency        String  @default("USD")
+  // Price parts at booking time (base, time, distance, booking fee, minimum), shown on the admin ride page.
+  fareBreakdown   Json?
+  // Google encoded polyline of the route that was priced, for the admin route map.
+  routePolyline   String?
+  // Refunded to the rider after the fare was charged (Stripe's running total).
+  refundedAmount  Decimal @default(0) @db.Decimal(10, 2)
 
   status RideStatus @default(REQUESTED)
   paid   Boolean    @default(false)
@@ -292,17 +303,37 @@ model Ride {
 
   requestedAt    DateTime? // when the card hold succeeded and drivers could see it
   acceptedAt     DateTime?
+  enRouteAt      DateTime?
+  startedAt      DateTime?
   completedAt    DateTime?
+  cancelledAt    DateTime?
   cancelReason   String?
   reminderSentAt DateTime? // scheduled rides: reminder / driver re-alert sent
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  refunds RideRefund[]
+
   @@index([riderId])
   @@index([driverId])
   @@index([payoutId])
   @@index([status, scheduledAt])
+}
+
+// A refund of a charged ride fare, sent through Stripe by an admin (or made in the Stripe dashboard).
+model RideRefund {
+  id             String   @id @default(cuid())
+  rideId         String
+  ride           Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  stripeRefundId String   @unique
+  amount         Decimal  @db.Decimal(10, 2)
+  reason         String
+  adminId        String?
+  admin          User?    @relation("RideRefundAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([rideId])
 }
 
 model Refund {
