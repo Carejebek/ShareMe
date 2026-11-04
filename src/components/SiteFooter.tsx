@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import InstallAppButton from "@/components/InstallAppButton";
 
 const columns = [
   {
@@ -51,6 +52,7 @@ export default function SiteFooter() {
             Jay<span className="text-[#ff5a1f]">XZ</span>
           </Link>
           <p className="mt-2">Drive Smart. Travel Better.</p>
+          <InstallAppButton className="mt-4 rounded-xl border border-white/20 px-4 py-2 text-sm font-bold text-white transition hover:border-[#ff5a1f] hover:text-[#ff5a1f]" />
         </div>
         {columns.map((column) => (
           <div key={column.title}>

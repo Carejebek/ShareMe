@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import InstallAppButton from "@/components/InstallAppButton";
 
 const dashboardByRole: Record<string, { label: string; href: string }> = {
   ADMIN: { label: "Admin", href: "/dashboard/admin" },
@@ -123,6 +124,8 @@ export default function Navbar() {
                 {item.label}
               </Link>
             ))}
+
+            <InstallAppButton onClick={() => setOpen(false)} className="text-left font-semibold text-[#ff5a1f]" />
 
             {status === "loading" ? null : user ? (
               <>
