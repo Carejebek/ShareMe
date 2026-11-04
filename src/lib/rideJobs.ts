@@ -1,6 +1,7 @@
 import { alertDrivers, notifyRideExpired, sendRideReminder } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { releaseRideHold } from "@/lib/ridePayments";
+import { sendDueInsuranceReminders } from "@/lib/driverDocs";
 
 // Time-based ride housekeeping. Runs every minute from cron (/api/cron/rides) and, as a backup,
 // whenever the rider or dispatch pages poll. Each step claims rides with a conditional update,
@@ -23,7 +24,7 @@ export function runRideJobsSoon() {
 export async function runRideJobs() {
   lastRun = Date.now();
   const now = new Date();
-  const summary = { abandoned: 0, expired: 0, reminders: 0, realerts: 0 };
+  const summary = { abandoned: 0, expired: 0, reminders: 0, realerts: 0, insuranceReminders: 0 };
 
   // 1. Checkout never finished: cancel and release whatever Stripe has.
   const abandoned = await prisma.ride.findMany({
@@ -87,6 +88,13 @@ export async function runRideJobs() {
       await alertDrivers(ride.id, true);
       summary.realerts++;
     }
+  }
+
+  // 4. Driver insurance expiring soon or just expired: text the driver (each stage once).
+  try {
+    summary.insuranceReminders = await sendDueInsuranceReminders(now);
+  } catch (error) {
+    console.error("Insurance reminders failed:", error);
   }
 
   return summary;

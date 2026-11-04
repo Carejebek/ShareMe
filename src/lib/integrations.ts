@@ -50,6 +50,7 @@ export const SMS_EVENTS = {
   "ride.cancelled": "Ride cancelled (rider and driver)",
   "ride.expired": "No driver found, hold released (rider)",
   "ride.reminder": "Scheduled ride reminder (rider and driver)",
+  "driver.insurance": "Insurance expiring or expired (driver)",
 } as const;
 export type SmsEvent = keyof typeof SMS_EVENTS;
 

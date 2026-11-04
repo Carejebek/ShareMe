@@ -63,12 +63,13 @@ export default async function AdminOverviewPage() {
     feePercent,
     pendingDrivers,
     unpaidRides,
+    insuranceSoon,
   ] = await Promise.all([
     revenueBetween(startOfToday),
     revenueBetween(last30),
     revenueBetween(prev30, last30),
     revenueBetween(),
-    prisma.ride.aggregate({ where: { status: "COMPLETED", paid: true }, _sum: { totalPrice: true } }),
+    prisma.ride.aggregate({ where: { status: "COMPLETED", paid: true }, _sum: { totalPrice: true, refundedAmount: true } }),
     prisma.payment.findMany({
       where: { ...PAID, createdAt: { gte: chartStart } },
       select: { amount: true, refundedAmount: true, createdAt: true },
@@ -105,6 +106,8 @@ export default async function AdminOverviewPage() {
     getPlatformFeePercent(),
     prisma.driverProfile.count({ where: { status: "PENDING" } }),
     getUnpaidRides(),
+    // Approved drivers whose insurance has lapsed or lapses within a week.
+    prisma.driverProfile.count({ where: { status: "APPROVED", insuranceExpiresAt: { lt: new Date(now.getTime() + 7 * DAY) } } }),
   ]);
   const owedToHosts = owedFor(unpaidBookings, feePercent).host + owedForRides(unpaidRides).host;
 
@@ -126,6 +129,7 @@ export default async function AdminOverviewPage() {
     { label: "Failed payments", detail: "Checkout attempts that failed", count: failedPayments, href: "/dashboard/admin/payments?status=FAILED", icon: "card" },
     { label: "Rides without a driver", detail: "Requested, not yet assigned", count: openRides, href: "/dashboard/admin/rides?status=REQUESTED", icon: "route" },
     { label: "Driver applications", detail: "New drivers waiting for review", count: pendingDrivers, href: "/dashboard/admin/drivers?status=PENDING", icon: "route" },
+    { label: "Driver insurance expiring", detail: "Expired or expiring within 7 days", count: insuranceSoon, href: "/dashboard/admin/drivers#insurance", icon: "shield" },
     { label: "Payouts due", detail: `${money(owedToHosts)} owed to hosts and drivers`, count: unpaidBookings.length + unpaidRides.length, href: "/dashboard/admin/payouts", icon: "wallet" },
     { label: "Pending bookings", detail: "Awaiting payment or confirmation", count: pendingBookings, href: "/dashboard/admin/bookings?status=PENDING", icon: "calendar" },
   ];
@@ -171,7 +175,7 @@ export default async function AdminOverviewPage() {
           <div className="mt-4 grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 pt-4 text-[13px]">
             <div className="pr-4">
               <p className="text-xs text-slate-500">Paid ride revenue</p>
-              <p className="mt-0.5 font-semibold tabular-nums">{money(rideRevenue._sum.totalPrice)}</p>
+              <p className="mt-0.5 font-semibold tabular-nums">{money(Number(rideRevenue._sum.totalPrice ?? 0) - Number(rideRevenue._sum.refundedAmount ?? 0))}</p>
             </div>
             <div className="px-4">
               <p className="text-xs text-slate-500">Owed to hosts &amp; drivers</p>
