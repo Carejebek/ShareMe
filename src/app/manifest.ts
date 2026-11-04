@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const THEME_COLOR = '#0c7f47';
+const THEME_COLOR = '#0a0a0a';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#ffffff',
+    background_color: '#0a0a0a',
     theme_color: THEME_COLOR,
     categories: ['travel', 'business'],
     icons: [

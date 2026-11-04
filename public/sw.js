@@ -1,4 +1,4 @@
-const CACHE = 'jayxz-static-v1';
+const CACHE = 'jayxz-static-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png'];
 
