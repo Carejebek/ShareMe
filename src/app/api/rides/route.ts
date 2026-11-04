@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { computeRoute, isValidPlaceId, MapsError } from '@/lib/maps';
 import { calculateFare } from '@/lib/pricing';
+import { getRidePricing } from '@/lib/settings';
 import { createRideHold, MAX_SCHEDULE_DAYS } from '@/lib/ridePayments';
 import { runRideJobsSoon } from '@/lib/rideJobs';
 import { getSessionUser, serializeRide } from '@/lib/rides';
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const route = await computeRoute(d.pickupPlaceId, d.dropoffPlaceId, scheduledAt);
-    const fare = calculateFare(route.durationSeconds);
+    const fare = calculateFare(route.durationSeconds, route.distanceMeters, await getRidePricing());
 
     const ride = await prisma.ride.create({
       data: {
@@ -103,6 +104,8 @@ export async function POST(req: NextRequest) {
         minimumFare: fare.minimumFare,
         totalPrice: fare.total,
         currency: fare.currency,
+        fareBreakdown: { ...fare },
+        routePolyline: route.polyline || null,
         // Drivers only see the ride once the card hold succeeds.
         status: 'AWAITING_PAYMENT'
       }

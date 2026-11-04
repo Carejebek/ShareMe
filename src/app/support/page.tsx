@@ -7,7 +7,7 @@ export const metadata = { title: "Support | JayXZ" };
 
 const faqs = [
   ["How do I book a car?", <>Find a car on <Link href="/cars">Browse cars</Link>, choose your dates and pay securely by card. You&apos;ll see the booking under My Bookings.</>],
-  ["How is a ride priced?", <>Rides cost a set amount per minute of driving from your pickup to your destination, using Google&apos;s drive time. You see the full price before you book and it doesn&apos;t change afterwards.</>],
+  ["How is a ride priced?", <>Ride fares are worked out from Google&apos;s drive time and distance between your pickup and your destination. You see the full price before you book and it doesn&apos;t change afterwards.</>],
   ["How do I cancel?", <>Open your booking or ride from your dashboard and choose Cancel. Rides can be cancelled until the driver is on the way.</>],
   ["Something went wrong on my trip", <>Report damage or another problem from <Link href="/dashboard/claims">Claims</Link>. Our team reviews every report.</>],
   ["How do I become a host?", <><Link href="/register">Create a host account</Link>, upload your driver&apos;s licence on your account page and list your car. We review each car before it goes live.</>],

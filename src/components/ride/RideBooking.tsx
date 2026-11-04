@@ -19,6 +19,13 @@ interface Quote {
     minutes: number;
     ratePerMinute: number;
     minimumFare: number;
+    baseFare?: number;
+    timeCharge?: number;
+    distance?: number;
+    distanceUnit?: 'km' | 'mi';
+    perDistance?: number;
+    distanceCharge?: number;
+    bookingFee?: number;
     subtotal: number;
     total: number;
     minimumApplied: boolean;
@@ -231,16 +238,41 @@ export default function RideBooking({
                   <dt>Distance</dt>
                   <dd className="font-semibold">{formatDistance(quote.distanceMeters)}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt>
-                    {quote.durationMinutes} min × {formatMoney(quote.fare.ratePerMinute, quote.fare.currency)}
-                  </dt>
-                  <dd className="font-semibold">{formatMoney(quote.fare.subtotal, quote.fare.currency)}</dd>
-                </div>
+                {!!quote.fare.baseFare && (
+                  <div className="flex justify-between">
+                    <dt>Base fare</dt>
+                    <dd className="font-semibold">{formatMoney(quote.fare.baseFare, quote.fare.currency)}</dd>
+                  </div>
+                )}
+                {quote.fare.ratePerMinute > 0 && (
+                  <div className="flex justify-between">
+                    <dt>
+                      {quote.durationMinutes} min × {formatMoney(quote.fare.ratePerMinute, quote.fare.currency)}
+                    </dt>
+                    <dd className="font-semibold">
+                      {formatMoney(quote.fare.timeCharge ?? quote.fare.subtotal, quote.fare.currency)}
+                    </dd>
+                  </div>
+                )}
+                {!!quote.fare.perDistance && (
+                  <div className="flex justify-between">
+                    <dt>
+                      {quote.fare.distance} {quote.fare.distanceUnit === 'mi' ? 'mi' : 'km'} ×{' '}
+                      {formatMoney(quote.fare.perDistance, quote.fare.currency)}
+                    </dt>
+                    <dd className="font-semibold">{formatMoney(quote.fare.distanceCharge ?? 0, quote.fare.currency)}</dd>
+                  </div>
+                )}
                 {quote.fare.minimumApplied && (
                   <div className="flex justify-between">
                     <dt>Minimum fare applied</dt>
                     <dd className="font-semibold">{formatMoney(quote.fare.minimumFare, quote.fare.currency)}</dd>
+                  </div>
+                )}
+                {!!quote.fare.bookingFee && (
+                  <div className="flex justify-between">
+                    <dt>Booking fee</dt>
+                    <dd className="font-semibold">{formatMoney(quote.fare.bookingFee, quote.fare.currency)}</dd>
                   </div>
                 )}
               </dl>

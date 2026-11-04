@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { formatMoney } from "@/lib/format";
-import { RIDE_CURRENCY, RIDE_MIN_FARE, RIDE_RATE_PER_MINUTE } from "@/lib/pricing";
+import { describePricing } from "@/lib/pricing";
+import { getRidePricing } from "@/lib/settings";
 
-export default function RidePromo() {
+export default async function RidePromo() {
+  const pricing = await getRidePricing();
   const steps = [
     ["Tell us where", "Use your current location or type a pickup, then choose where you're going."],
-    ["See the price first", `${formatMoney(RIDE_RATE_PER_MINUTE, RIDE_CURRENCY)} per minute of driving, from your pickup to your destination. Minimum ${formatMoney(RIDE_MIN_FARE, RIDE_CURRENCY)}.`],
+    ["See the price first", `${describePricing(pricing, (n) => formatMoney(n, pricing.currency))}, from your pickup to your destination.`],
     ["Ride", "A driver accepts your ride and you get updates by text. The price you booked is the price you pay."],
   ];
 
@@ -20,7 +22,7 @@ export default function RidePromo() {
             not a rental?
           </h2>
           <p className="mt-6 max-w-xl text-lg leading-8 text-neutral-300">
-            Book a driver in a minute. Your fare is calculated from Google&apos;s drive time between your pickup and your
+            Book a driver in a minute. Your fare is calculated from Google&apos;s drive time and distance between your pickup and your
             destination, and locked in when you book.
           </p>
           <Link

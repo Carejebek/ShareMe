@@ -2,10 +2,9 @@ import Link from "next/link";
 import LicenseUpload from "@/components/account/LicenseUpload";
 import DriverApplication from "@/components/drive/DriverApplication";
 import { formatMoney } from "@/lib/format";
-import { RIDE_CURRENCY, RIDE_RATE_PER_MINUTE } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/rides";
-import { getPlatformFeePercent } from "@/lib/settings";
+import { getPlatformFeePercent, getRidePricing } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Drive with JayXZ" };
@@ -17,7 +16,7 @@ const STATUS = {
 } as const;
 
 export default async function DrivePage() {
-  const [sessionUser, feePercent] = await Promise.all([getSessionUser(), getPlatformFeePercent()]);
+  const [sessionUser, feePercent, pricing] = await Promise.all([getSessionUser(), getPlatformFeePercent(), getRidePricing()]);
   const user = sessionUser
     ? await prisma.user.findUnique({
         where: { id: sessionUser.id },
@@ -26,7 +25,8 @@ export default async function DrivePage() {
     : null;
   const profile = user?.driverProfile ?? null;
   const share = 100 - feePercent;
-  const perMinute = formatMoney(RIDE_RATE_PER_MINUTE * (share / 100), RIDE_CURRENCY);
+  const perMinute = formatMoney(pricing.perMinute * (share / 100), pricing.currency);
+  const perMinuteOnly = !pricing.baseFare && !pricing.perDistance && !pricing.bookingFee && pricing.perMinute > 0;
   const insuranceExpired = profile ? profile.insuranceExpiresAt < new Date() : false;
 
   return (
@@ -36,8 +36,8 @@ export default async function DrivePage() {
           <p className="text-sm font-black uppercase tracking-[0.35em] text-[#ff5a1f]">Drive with JayXZ</p>
           <h1 className="mt-3 text-4xl font-black text-neutral-950 md:text-5xl">Earn by driving riders</h1>
           <p className="mt-3 max-w-2xl text-lg text-neutral-600">
-            Pick the rides you want. Riders pay by card before you set off, and you keep {share}% of every fare (about {perMinute} per
-            minute of driving).
+            Pick the rides you want. Riders pay by card before you set off, and you keep {share}% of every fare
+            {perMinuteOnly ? ` (about ${perMinute} per minute of driving)` : ""}.
           </p>
         </div>
       </section>

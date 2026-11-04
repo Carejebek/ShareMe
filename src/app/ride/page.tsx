@@ -1,6 +1,7 @@
 import RideBooking from '@/components/ride/RideBooking';
 import { isValidPlaceId } from '@/lib/maps';
-import { RIDE_CURRENCY, RIDE_RATE_PER_MINUTE } from '@/lib/pricing';
+import { describePricing } from '@/lib/pricing';
+import { getRidePricing } from '@/lib/settings';
 import { formatMoney } from '@/lib/format';
 
 export const metadata = {
@@ -19,7 +20,8 @@ function address(params: Record<string, string | string[] | undefined>, id: stri
 
 export default async function RidePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const rate = formatMoney(RIDE_RATE_PER_MINUTE, RIDE_CURRENCY);
+  const pricing = await getRidePricing();
+  const rate = describePricing(pricing, (n) => formatMoney(n, pricing.currency));
 
   return (
     <main className="min-h-screen bg-[#f7f7f7] pt-24">
@@ -28,8 +30,8 @@ export default async function RidePage({ searchParams }: { searchParams: SearchP
           <p className="text-sm font-black uppercase tracking-[0.35em] text-[#ff5a1f]">JayXZ Rides</p>
           <h1 className="mt-3 text-4xl font-black text-neutral-950 md:text-5xl">Book a ride</h1>
           <p className="mt-3 max-w-2xl text-lg text-neutral-600">
-            Enter where you are and where you are going. You see the price before you book: {rate} for every
-            minute of the drive from your pickup to your destination.
+            Enter where you are and where you are going. You see the price before you book: {rate}, for the drive from your pickup to your
+            destination.
           </p>
         </div>
       </section>

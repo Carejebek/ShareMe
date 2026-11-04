@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { computeRoute, isValidPlaceId, MapsError, routeImageUrl } from '@/lib/maps';
 import { calculateFare } from '@/lib/pricing';
 import { clientIp, rateLimit } from '@/lib/rateLimit';
+import { getRidePricing } from '@/lib/settings';
 
 const quoteSchema = z.object({
   pickupPlaceId: z.string().refine(isValidPlaceId, 'Invalid pickup address'),
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
       dropoffPlaceId,
       scheduledAt ? new Date(scheduledAt) : null
     );
-    const fare = calculateFare(route.durationSeconds);
+    const fare = calculateFare(route.durationSeconds, route.distanceMeters, await getRidePricing());
     return NextResponse.json({
       distanceMeters: route.distanceMeters,
       durationMinutes: fare.minutes,

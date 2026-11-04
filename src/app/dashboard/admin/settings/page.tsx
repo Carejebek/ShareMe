@@ -1,16 +1,25 @@
 import AdminForm from "@/components/admin/AdminForm";
+import RidePricingForm from "@/components/admin/RidePricingForm";
 import { Card, PageHeader } from "@/components/admin/ui";
 import { money, requireAdmin } from "@/lib/admin";
-import { getPlatformFeePercent, getSupportContact, splitEarnings } from "@/lib/settings";
+import { getPlatformFeePercent, getRidePricing, getSupportContact, splitEarnings } from "@/lib/settings";
 
 export default async function AdminSettingsPage() {
   await requireAdmin();
-  const [feePercent, support] = await Promise.all([getPlatformFeePercent(), getSupportContact()]);
+  const [feePercent, support, pricing] = await Promise.all([getPlatformFeePercent(), getSupportContact(), getRidePricing()]);
   const example = splitEarnings(100, feePercent);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Settings" description="Platform-wide settings. Every change is recorded in the audit log." />
+
+      <Card
+        title="Ride pricing"
+        description="Fare = base + time + distance (at least the minimum), plus the booking fee. Changes apply to new quotes straight away; booked rides keep their price."
+        className="max-w-4xl"
+      >
+        <RidePricingForm pricing={pricing} feePercent={feePercent} />
+      </Card>
 
       <Card title="Platform fee" className="max-w-2xl">
         <p className="mb-5 text-[13px] text-slate-600">
