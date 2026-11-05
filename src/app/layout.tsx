@@ -24,6 +24,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Catch Chrome's install offer before React loads, or the Install button never gets it. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__jxInstall=e;window.dispatchEvent(new Event('jayxz:bip'));});",
+          }}
+        />
+      </head>
       <body className="bg-white text-neutral-950 antialiased">
         <Providers>
           <Navbar />

@@ -8,6 +8,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+type JxWindow = Window & { __jxInstall?: BeforeInstallPromptEvent | null };
+
 const DISMISS_KEY = 'jayxz-install-dismissed';
 const DISMISS_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -28,26 +30,27 @@ function rememberDismissal() {
   }
 }
 
-// Only Android/desktop Chrome-type browsers offer a real install button (beforeinstallprompt).
-// Everywhere else we can only tell people where the browser keeps "Add to Home Screen",
-// and that place depends on the browser.
+// Only Chrome-type browsers (Android, desktop) offer a real one-tap install (beforeinstallprompt).
+// Apple does not let any website install itself, so on iPhone/iPad we show the steps instead.
 type Platform =
-  | 'ios-safari' // Share button in the toolbar
-  | 'ios-chrome' // Share button in the address bar, top right
-  | 'ios-other' // Firefox, Edge, etc.: Share is inside the browser menu
-  | 'in-app' // Instagram, Facebook, TikTok...: no Add to Home Screen at all
-  | 'other'; // Android/desktop browser that hasn't offered an install button
+  | 'ios-safari'
+  | 'ios-chrome'
+  | 'ios-other'
+  | 'in-app' // Instagram, Facebook, TikTok... built-in browsers cannot install apps
+  | 'android'
+  | 'desktop';
 
 function detectPlatform(): Platform {
   const ua = navigator.userAgent;
-  // iPads report themselves as a Mac; touch support gives them away.
   const ios = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
   const inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Twitter|Pinterest|GSA\//i.test(ua);
   if (inApp) return 'in-app';
-  if (!ios) return 'other';
-  if (/CriOS/i.test(ua)) return 'ios-chrome';
-  if (/FxiOS|EdgiOS|OPiOS|OPT\//i.test(ua)) return 'ios-other';
-  return 'ios-safari';
+  if (ios) {
+    if (/CriOS/i.test(ua)) return 'ios-chrome';
+    if (/FxiOS|EdgiOS|OPiOS|OPT\//i.test(ua)) return 'ios-other';
+    return 'ios-safari';
+  }
+  return /android/i.test(ua) ? 'android' : 'desktop';
 }
 
 function ShareIcon() {
@@ -58,51 +61,99 @@ function ShareIcon() {
   );
 }
 
-function Instructions({ platform }: { platform: Platform }) {
+function steps(platform: Platform): React.ReactNode[] {
   const b = (text: string) => <span className="font-semibold text-neutral-900">{text}</span>;
   switch (platform) {
     case 'ios-safari':
-      return <>Tap {b('Share')} <ShareIcon /> in the toolbar, then {b('Add to Home Screen')}.</>;
+      return [
+        <>Tap {b('Share')} <ShareIcon /> at the bottom of the screen. On newer iPhones, tap {b('•••')} first, then {b('Share')}.</>,
+        <>Scroll down and tap {b('Add to Home Screen')}.</>,
+        <>Tap {b('Add')}. JayXZ appears on your home screen.</>
+      ];
     case 'ios-chrome':
-      return <>Tap {b('Share')} <ShareIcon /> in the address bar at the top right, then {b('Add to Home Screen')}.</>;
+      return [
+        <>Tap {b('Share')} <ShareIcon /> in the address bar at the top right.</>,
+        <>Tap {b('Add to Home Screen')} (tap {b('More')} if you don&apos;t see it).</>,
+        <>Tap {b('Add')}.</>
+      ];
     case 'ios-other':
-      return <>Open the browser menu, tap {b('Share')} <ShareIcon />, then {b('Add to Home Screen')}. If it isn&apos;t there, open jayxz.com in Safari.</>;
+      return [
+        <>Open the browser menu and tap {b('Share')} <ShareIcon />.</>,
+        <>Tap {b('Add to Home Screen')}, then {b('Add')}.</>,
+        <>Don&apos;t see it? Open jayxz.com in {b('Safari')} and install from there.</>
+      ];
     case 'in-app':
-      return <>This app&apos;s built-in browser can&apos;t install apps. Tap {b('•••')} and choose {b('Open in browser')} (or {b('Open in Safari')}), then install from there.</>;
+      return [
+        <>This app&apos;s built-in browser can&apos;t install apps.</>,
+        <>Tap {b('•••')} and choose {b('Open in browser')} (or {b('Open in Safari')}), or copy the link below and paste it in your browser.</>,
+        <>Then tap {b('Install the app')} again.</>
+      ];
+    case 'android':
+      return [
+        <>Tap the {b('⋮')} menu at the top right of Chrome.</>,
+        <>Tap {b('Install app')} or {b('Add to Home screen')}.</>,
+        <>Tap {b('Install')}. Already installed? Open JayXZ from your home screen.</>
+      ];
     default:
-      return <>Open your browser menu and choose {b('Install app')} or {b('Add to Home screen')}.</>;
+      return [
+        <>Click the install icon at the right end of the address bar, or open the browser menu.</>,
+        <>Choose {b('Install JayXZ')} (in Edge: {b('Apps')} → {b('Install this site as an app')}).</>,
+        <>Safari on Mac: {b('File')} → {b('Add to Dock')}.</>
+      ];
   }
 }
 
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [platform, setPlatform] = useState<Platform>('other');
+  const [platform, setPlatform] = useState<Platform>('desktop');
   const [visible, setVisible] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
+    const w = window as JxWindow;
     const detected = detectPlatform();
     setPlatform(detected);
-    // iOS and in-app browsers never fire beforeinstallprompt, so show the instructions straight away.
-    if (detected !== 'other' && !wasDismissedRecently()) setVisible(true);
+
+    const pickUp = () => {
+      if (!w.__jxInstall) return;
+      setDeferred(w.__jxInstall);
+      setShowSteps(false);
+      if (!wasDismissedRecently()) setVisible(true);
+    };
+    pickUp(); // the early script in <head> may already have caught it
+
+    // iPhone/iPad and in-app browsers never offer a one-tap install, so show the steps right away.
+    const iosLike = detected.startsWith('ios') || detected === 'in-app';
+    if (iosLike && !wasDismissedRecently()) {
+      setShowSteps(true);
+      setVisible(true);
+    }
 
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
-      if (!wasDismissedRecently()) setVisible(true);
+      w.__jxInstall = event as BeforeInstallPromptEvent;
+      pickUp();
     };
     const onInstalled = () => {
+      w.__jxInstall = null;
       setDeferred(null);
       setVisible(false);
     };
-    // "Install the app" links (menu, footer) reopen the banner even after "Not now".
-    const onRequest = () => setVisible(true);
+    // "Install the app" links (menu, footer) open the banner even after "Not now".
+    const onRequest = () => {
+      setShowSteps(!w.__jxInstall);
+      setVisible(true);
+    };
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('jayxz:bip', pickUp);
     window.addEventListener('appinstalled', onInstalled);
     window.addEventListener(INSTALL_EVENT, onRequest);
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('jayxz:bip', pickUp);
       window.removeEventListener('appinstalled', onInstalled);
       window.removeEventListener(INSTALL_EVENT, onRequest);
     };
@@ -116,12 +167,27 @@ export default function InstallPrompt() {
   };
 
   const install = async () => {
-    if (!deferred) return;
-    await deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    setDeferred(null);
-    if (outcome === 'dismissed') rememberDismissal();
-    setVisible(false);
+    const w = window as JxWindow;
+    // No one-tap install available: show the steps instead of doing nothing.
+    if (!deferred) {
+      setShowSteps(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      if (outcome === 'dismissed') rememberDismissal();
+      setVisible(false);
+    } catch {
+      // The browser's offer was already used or expired.
+      setShowSteps(true);
+    } finally {
+      // Each offer can only be used once.
+      w.__jxInstall = null;
+      setDeferred(null);
+      setBusy(false);
+    }
   };
 
   const copyLink = async () => {
@@ -129,7 +195,7 @@ export default function InstallPrompt() {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
     } catch {
-      /* clipboard blocked: the instructions still apply */
+      /* clipboard blocked: the steps still apply */
     }
   };
 
@@ -144,26 +210,41 @@ export default function InstallPrompt() {
         <img src="/icons/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black text-neutral-950">Install the JayXZ app</p>
-          <p className="mt-1 text-sm leading-6 text-neutral-600">
-            {deferred ? 'Add JayXZ to your home screen for faster access.' : <Instructions platform={platform} />}
-          </p>
+
+          {showSteps ? (
+            <ol className="mt-2 space-y-2 text-sm leading-6 text-neutral-600">
+              {steps(platform).map((step, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#ff5a1f] text-xs font-bold text-white">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-1 text-sm leading-6 text-neutral-600">Add JayXZ to your home screen for faster access.</p>
+          )}
+
           <div className="mt-3 flex flex-wrap gap-2">
-            {deferred && (
+            {!showSteps && (
               <button
                 type="button"
                 onClick={install}
-                className="rounded-lg bg-[#ff5a1f] px-4 py-2 text-sm font-bold text-white hover:bg-[#e64a19]"
+                disabled={busy}
+                className="rounded-lg bg-[#ff5a1f] px-4 py-2 text-sm font-bold text-white hover:bg-[#e64a19] disabled:opacity-60"
               >
-                Install
+                {busy ? 'Opening…' : 'Install'}
               </button>
             )}
-            {!deferred && platform === 'in-app' && (
-              <button
-                type="button"
-                onClick={copyLink}
-                className="rounded-lg bg-neutral-950 px-4 py-2 text-sm font-bold text-white"
-              >
+            {showSteps && platform === 'in-app' && (
+              <button type="button" onClick={copyLink} className="rounded-lg bg-neutral-950 px-4 py-2 text-sm font-bold text-white">
                 {copied ? 'Link copied' : 'Copy link'}
+              </button>
+            )}
+            {showSteps && (
+              <button type="button" onClick={() => setVisible(false)} className="rounded-lg bg-[#ff5a1f] px-4 py-2 text-sm font-bold text-white">
+                Got it
               </button>
             )}
             <button
