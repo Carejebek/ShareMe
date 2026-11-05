@@ -18,7 +18,6 @@ export function formatWhen(scheduledAt: string | null): string {
 }
 
 export const STATUS_LABEL: Record<string, string> = {
-  AWAITING_PAYMENT: 'Waiting for payment',
   REQUESTED: 'Looking for a driver',
   ACCEPTED: 'Driver assigned',
   EN_ROUTE: 'Driver on the way',
@@ -28,7 +27,6 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 export const STATUS_STYLE: Record<string, string> = {
-  AWAITING_PAYMENT: 'bg-neutral-100 text-neutral-600',
   REQUESTED: 'bg-yellow-100 text-yellow-800',
   ACCEPTED: 'bg-blue-100 text-blue-800',
   EN_ROUTE: 'bg-indigo-100 text-indigo-800',
@@ -51,4 +49,21 @@ export function mapsDirectionsUrl(r: {
     destination_place_id: r.dropoffPlaceId
   });
   return `https://www.google.com/maps/dir/?${q.toString()}`;
+}
+
+export type NavApp = 'google' | 'apple' | 'waze';
+
+export function navigationUrl(
+  app: NavApp,
+  dest: { address: string; placeId?: string }
+): string {
+  if (app === 'waze') {
+    return `https://waze.com/ul?${new URLSearchParams({ q: dest.address, navigate: 'yes' })}`;
+  }
+  if (app === 'apple') {
+    return `https://maps.apple.com/?${new URLSearchParams({ daddr: dest.address, dirflg: 'd' })}`;
+  }
+  const q = new URLSearchParams({ api: '1', destination: dest.address, travelmode: 'driving' });
+  if (dest.placeId) q.set('destination_place_id', dest.placeId);
+  return `https://www.google.com/maps/dir/?${q}`;
 }
