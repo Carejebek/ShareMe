@@ -32,6 +32,8 @@ interface DispatchRide {
   currency: string;
   status: string;
   paid: boolean;
+  paymentStatus: string;
+  driverEarnings: number | null;
   driverId: string | null;
   rider: { name: string };
   driver: Driver | null;
@@ -53,14 +55,21 @@ export default function DispatchPage() {
   const [denied, setDenied] = useState('');
   const [error, setError] = useState('');
   const [showDone, setShowDone] = useState(false);
+  const [canApply, setCanApply] = useState(false);
+  const [feePercent, setFeePercent] = useState(20);
+  const [notice, setNotice] = useState('');
   const [nav, setNav] = useState<{ ride: DispatchRide; target: 'pickup' | 'dropoff' } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/dispatch/rides');
     if (res.status === 401) setDenied('Please log in as a driver or admin.');
-    else if (res.status === 403) setDenied('This page is for drivers and admins only.');
-    else if (res.ok) {
+    else if (res.status === 403) {
+      const data = await res.json().catch(() => ({}));
+      setDenied(data.error || 'This page is for drivers and admins only.');
+      setCanApply(Boolean(data.apply));
+    } else if (res.ok) {
       const data = await res.json();
+      setFeePercent(data.feePercent ?? 20);
       setRole(data.role);
       setUserId(data.userId);
       setRides(data.rides);
@@ -82,10 +91,12 @@ export default function DispatchPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    const ok = res.ok;
-    if (!ok) setError((await res.json()).error || 'Action failed.');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) setError(data.error || 'Action failed.');
+    else if (data.warning) setError(data.warning);
+    else if (data.status === 'COMPLETED' && data.paymentStatus === 'CAPTURED') setNotice('Trip completed and the fare was charged to the rider.');
     load();
-    return ok;
+    return res.ok;
   }
 
   async function advance(r: DispatchRide) {
@@ -100,7 +111,12 @@ export default function DispatchPage() {
     return (
       <Shell>
         <p className="text-neutral-600">
-          {denied} <Link href="/login?callbackUrl=/dashboard/dispatch" className="font-bold text-[#e62e1f]">Log in</Link>
+          {denied}{' '}
+          {canApply ? (
+            <Link href="/drive" className="font-bold text-[#e62e1f]">Go to the Drive page</Link>
+          ) : (
+            <Link href="/login?callbackUrl=/dashboard/dispatch" className="font-bold text-[#e62e1f]">Log in</Link>
+          )}
         </p>
       </Shell>
     );
@@ -108,7 +124,9 @@ export default function DispatchPage() {
 
   const isAdmin = role === 'ADMIN';
   const finished = (s: string) => s === 'COMPLETED' || s === 'CANCELLED';
-  const visible = rides.filter((r) => (showDone ? true : !finished(r.status) || (r.status === 'COMPLETED' && !r.paid)));
+  const cashDue = (r: DispatchRide) => r.status === 'COMPLETED' && !r.paid && r.paymentStatus === 'UNPAID';
+  const visible = rides.filter((r) => (showDone ? true : !finished(r.status) || cashDue(r)));
+  const earnings = (r: DispatchRide) => r.driverEarnings ?? Math.round(r.totalPrice * (100 - feePercent)) / 100;
 
   return (
     <Shell>
@@ -120,9 +138,10 @@ export default function DispatchPage() {
         </label>
       </div>
       {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-red-700">{error}</p>}
+      {notice && !error && <p className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-green-800">{notice}</p>}
       {isAdmin && drivers.length === 0 && (
         <p className="mb-4 rounded-xl bg-yellow-50 px-4 py-3 text-yellow-800">
-          No drivers yet. Promote a user to the DRIVER role to assign rides.
+          No approved drivers yet. Review applications in Admin → Drivers.
         </p>
       )}
 
@@ -147,10 +166,15 @@ export default function DispatchPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-black">{formatMoney(r.totalPrice, r.currency)}</p>
+                  <p className="text-xs font-bold text-green-700">Driver earns {formatMoney(earnings(r), r.currency)}</p>
                   <span className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLE[r.status] || ''}`}>
                     {STATUS_LABEL[r.status] || r.status}
                   </span>
-                  {r.status === 'COMPLETED' && <p className="mt-1 text-xs text-neutral-500">{r.paid ? 'Paid' : 'Unpaid'}</p>}
+                  {r.status === 'COMPLETED' && (
+                    <p className="mt-1 text-xs text-neutral-500">
+                      {r.paymentStatus === 'CAPTURED' ? 'Charged to card' : r.paymentStatus === 'FAILED' ? 'Card charge failed' : r.paid ? 'Paid' : 'Unpaid'}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -209,7 +233,7 @@ export default function DispatchPage() {
                   </button>
                 )}
 
-                {(mine || isAdmin) && r.status === 'COMPLETED' && !r.paid && (
+                {(mine || isAdmin) && cashDue(r) && (
                   <button onClick={() => act(r.id, { action: 'markPaid' })} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-black text-white">
                     Mark as paid
                   </button>

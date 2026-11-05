@@ -18,6 +18,7 @@ export function formatWhen(scheduledAt: string | null): string {
 }
 
 export const STATUS_LABEL: Record<string, string> = {
+  AWAITING_PAYMENT: 'Waiting for payment',
   REQUESTED: 'Looking for a driver',
   ACCEPTED: 'Driver assigned',
   EN_ROUTE: 'Driver on the way',
@@ -27,6 +28,7 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 export const STATUS_STYLE: Record<string, string> = {
+  AWAITING_PAYMENT: 'bg-neutral-100 text-neutral-600',
   REQUESTED: 'bg-yellow-100 text-yellow-800',
   ACCEPTED: 'bg-blue-100 text-blue-800',
   EN_ROUTE: 'bg-indigo-100 text-indigo-800',
